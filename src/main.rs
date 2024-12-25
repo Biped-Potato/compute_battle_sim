@@ -21,7 +21,7 @@ use std::borrow::Cow;
 const SHADER_ASSET_PATH: &str = "shaders/game_of_life.wgsl";
 
 const DISPLAY_FACTOR: u32 = 1;
-const SIZE: (u32, u32) = (1280 / DISPLAY_FACTOR, 720 / DISPLAY_FACTOR);
+const SIZE: (u32, u32) = (1920 / DISPLAY_FACTOR, 1080 / DISPLAY_FACTOR);
 const WORKGROUP_SIZE: u32 = 8;
 
 fn main() {
@@ -34,8 +34,8 @@ fn main() {
                         resolution: (
                             (SIZE.0 * DISPLAY_FACTOR) as f32,
                             (SIZE.1 * DISPLAY_FACTOR) as f32,
-                        )
-                            .into(),
+                        ).into(),
+                        mode : bevy::window::WindowMode::BorderlessFullscreen(MonitorSelection::Primary),
                         // uncomment for unthrottled FPS
                         // present_mode: bevy::window::PresentMode::AutoNoVsync,
                         ..default()
@@ -283,6 +283,7 @@ impl render_graph::Node for GameOfLifeNode {
                     .unwrap();
                 pass.set_bind_group(0, &bind_groups[index], &[]);
                 pass.set_pipeline(update_pipeline);
+                
                 pass.dispatch_workgroups(SIZE.0 / WORKGROUP_SIZE, SIZE.1 / WORKGROUP_SIZE, 1);
             }
         }

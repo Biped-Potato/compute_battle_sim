@@ -55,7 +55,7 @@ fn update(@builtin(global_invocation_id) invocation_id: vec3<u32>) {
     let location = vec2<i32>(i32(invocation_id.x), i32(invocation_id.y));
 
     let n_alive = count_alive(location);
-
+    
     var alive: bool;
     if (n_alive == 3) {
         alive = true;
