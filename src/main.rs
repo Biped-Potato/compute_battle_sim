@@ -13,7 +13,7 @@ use bevy::{
         Render, RenderApp, RenderSet,
     },
 };
-use logic::{prepare_bind_group, LogicNode, LogicPipeline};
+use logic::{LogicNode, LogicPipeline};
 use rendering::{RenderNode, RenderingPipeline};
 use unit::Unit;
 
@@ -23,8 +23,9 @@ pub mod unit;
 
 const DISPLAY_FACTOR: u32 = 1;
 const SIZE: (u32, u32) = (1920 / DISPLAY_FACTOR, 1080 / DISPLAY_FACTOR);
-const WORKGROUP_SIZE: u32 = 8;
-
+const WORKGROUP_SIZE: u32 = 16;
+const SIZE_X : u32 = 100;
+const SIZE_Y : u32 = 100;
 fn main() {
     App::new()
         .insert_resource(ClearColor(Color::BLACK))
@@ -54,7 +55,7 @@ fn main() {
         .run();
 }
 
-const UNIT_COUNT: i32 = 1000;
+
 fn setup(mut commands: Commands, mut images: ResMut<Assets<Image>>) {
     let mut image = Image::new_fill(
         Extent3d {
@@ -64,7 +65,7 @@ fn setup(mut commands: Commands, mut images: ResMut<Assets<Image>>) {
         },
         TextureDimension::D2,
         &[0, 0, 0, 255],
-        TextureFormat::R32Float,
+        TextureFormat::Rgba8Unorm,
         RenderAssetUsages::RENDER_WORLD,
     );
     image.texture_descriptor.usage =
@@ -81,13 +82,13 @@ fn setup(mut commands: Commands, mut images: ResMut<Assets<Image>>) {
     ));
     commands.spawn(Camera2d);
 
-    let units = vec![
-        Unit {
-            position: Vec2::ZERO
-        };
-        UNIT_COUNT as usize
-    ];
+    let mut units = Vec::new();
 
+    for x in 0..SIZE_X {
+        for y in 0..SIZE_Y {
+            units.push(Unit { position: Vec2::new(x as f32, y as f32)*5.0 });
+        }
+    }
     commands.insert_resource(SimulationUniforms {
         render_texture: image,
         units: units,
@@ -112,7 +113,7 @@ impl Plugin for SimulationComputePlugin {
         let render_app = app.sub_app_mut(RenderApp);
         render_app.add_systems(
             Render,
-            prepare_bind_group.in_set(RenderSet::PrepareBindGroups),
+            (logic::prepare_bind_group,rendering::prepare_bind_group).in_set(RenderSet::PrepareBindGroups),
         );
 
         let mut render_graph = render_app.world_mut().resource_mut::<RenderGraph>();

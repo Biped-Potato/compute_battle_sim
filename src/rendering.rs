@@ -9,12 +9,11 @@ use bevy::render::{
     texture::GpuImage,
 };
 
-use crate::{SimulationUniforms, SIZE, WORKGROUP_SIZE};
+use crate::{SimulationUniforms, SIZE, SIZE_X, SIZE_Y, WORKGROUP_SIZE};
 const SHADER_ASSET_PATH: &str = "shaders/rendering.wgsl";
 
 pub enum RenderState {
     Loading,
-    Init,
     Update,
 }
 
@@ -71,8 +70,8 @@ pub fn prepare_bind_group(
 #[derive(Resource)]
 pub struct RenderingPipeline {
     texture_bind_group_layout: BindGroupLayout,
-    init_pipeline: CachedComputePipelineId,
     update_pipeline: CachedComputePipelineId,
+    clear_pipeline : CachedComputePipelineId,
 }
 
 impl FromWorld for RenderingPipeline {
@@ -105,28 +104,30 @@ impl FromWorld for RenderingPipeline {
         );
         let shader = world.load_asset(SHADER_ASSET_PATH);
         let pipeline_cache = world.resource::<PipelineCache>();
-        let init_pipeline = pipeline_cache.queue_compute_pipeline(ComputePipelineDescriptor {
-            label: None,
-            layout: vec![texture_bind_group_layout.clone()],
-            push_constant_ranges: Vec::new(),
-            shader: shader.clone(),
-            shader_defs: vec![],
-            entry_point: Cow::from("init"),
-            zero_initialize_workgroup_memory: false,
-        });
         let update_pipeline = pipeline_cache.queue_compute_pipeline(ComputePipelineDescriptor {
             label: None,
             layout: vec![texture_bind_group_layout.clone()],
             push_constant_ranges: Vec::new(),
-            shader,
+            shader : shader.clone(),
             shader_defs: vec![],
             entry_point: Cow::from("update"),
             zero_initialize_workgroup_memory: false,
         });
 
+
+        let clear_pipeline = pipeline_cache.queue_compute_pipeline(ComputePipelineDescriptor {
+            label: None,
+            layout: vec![texture_bind_group_layout.clone()],
+            push_constant_ranges: Vec::new(),
+            shader,
+            shader_defs: vec![],
+            entry_point: Cow::from("clear"),
+            zero_initialize_workgroup_memory: false,
+        });
+
         RenderingPipeline {
             texture_bind_group_layout,
-            init_pipeline,
+            clear_pipeline,
             update_pipeline,
         }
     }
@@ -140,21 +141,14 @@ impl render_graph::Node for RenderNode {
         // if the corresponding pipeline has loaded, transition to the next stage
         match self.state {
             RenderState::Loading => {
-                match pipeline_cache.get_compute_pipeline_state(pipeline.init_pipeline) {
+                match pipeline_cache.get_compute_pipeline_state(pipeline.update_pipeline) {
                     CachedPipelineState::Ok(_) => {
-                        self.state = RenderState::Init;
+                        self.state = RenderState::Update;
                     }
                     CachedPipelineState::Err(err) => {
                         panic!("Initializing assets/{SHADER_ASSET_PATH}:\n{err}")
                     }
                     _ => {}
-                }
-            }
-            RenderState::Init => {
-                if let CachedPipelineState::Ok(_) =
-                    pipeline_cache.get_compute_pipeline_state(pipeline.update_pipeline)
-                {
-                    self.state = RenderState::Update;
                 }
             }
             RenderState::Update => {
@@ -180,22 +174,23 @@ impl render_graph::Node for RenderNode {
         // select the pipeline based on the current state
         match self.state {
             RenderState::Loading => {}
-            RenderState::Init => {
-                let init_pipeline = pipeline_cache
-                    .get_compute_pipeline(pipeline.init_pipeline)
+            RenderState::Update => {
+                let clear_pipeline = pipeline_cache
+                    .get_compute_pipeline(pipeline.clear_pipeline)
                     .unwrap();
                 pass.set_bind_group(0, bind_group, &[]);
-                pass.set_pipeline(init_pipeline);
+                pass.set_pipeline(clear_pipeline);
+
                 pass.dispatch_workgroups(SIZE.0 / WORKGROUP_SIZE, SIZE.1 / WORKGROUP_SIZE, 1);
-            }
-            RenderState::Update => {
+
+
                 let update_pipeline = pipeline_cache
                     .get_compute_pipeline(pipeline.update_pipeline)
                     .unwrap();
                 pass.set_bind_group(0, bind_group, &[]);
                 pass.set_pipeline(update_pipeline);
 
-                pass.dispatch_workgroups(SIZE.0 / WORKGROUP_SIZE, SIZE.1 / WORKGROUP_SIZE, 1);
+                pass.dispatch_workgroups((SIZE_X * SIZE_Y) / WORKGROUP_SIZE, 1, 1);
             }
         }
 
