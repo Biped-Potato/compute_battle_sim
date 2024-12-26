@@ -6,11 +6,7 @@
 use bevy::{
     prelude::*,
     render::{
-        extract_resource::{ExtractResource, ExtractResourcePlugin},
-        render_asset::RenderAssetUsages,
-        render_graph::{RenderGraph, RenderLabel},
-        render_resource::*,
-        Render, RenderApp, RenderSet,
+        extract_resource::{ExtractResource, ExtractResourcePlugin}, render_asset::RenderAssetUsages, render_graph::{RenderGraph, RenderLabel}, render_resource::*, renderer::RenderDevice, Render, RenderApp, RenderSet
     },
 };
 use logic::{LogicNode, LogicPipeline};
@@ -94,7 +90,26 @@ fn setup(mut commands: Commands, mut images: ResMut<Assets<Image>>) {
         units: units,
     });
 }
-
+#[derive(Resource,Default,Deref)]
+pub struct UnitBuffer(Vec<Buffer>);
+fn create_unit_buffer(
+    simulation_uniforms: Res<SimulationUniforms>,
+    render_device: Res<RenderDevice>,
+    mut unit_buffer : ResMut<UnitBuffer>,
+) {
+    if unit_buffer.0.len() == 0{
+        let mut byte_buffer = Vec::new();
+        let mut buffer = encase::StorageBuffer::new(&mut byte_buffer);
+        buffer.write(&simulation_uniforms.units).unwrap();
+    
+        let storage = render_device.create_buffer_with_data(&BufferInitDescriptor {
+            label: None,
+            usage: BufferUsages::COPY_DST | BufferUsages::STORAGE | BufferUsages::COPY_SRC,
+            contents: buffer.into_inner(),
+        });
+        unit_buffer.0.push(storage);
+    } 
+}
 fn set_texture(images: Res<SimulationUniforms>, mut sprite: Single<&mut Sprite>) {
     sprite.image = images.render_texture.clone_weak();
 }
@@ -113,9 +128,9 @@ impl Plugin for SimulationComputePlugin {
         let render_app = app.sub_app_mut(RenderApp);
         render_app.add_systems(
             Render,
-            (logic::prepare_bind_group,rendering::prepare_bind_group).in_set(RenderSet::PrepareBindGroups),
+            (create_unit_buffer,logic::prepare_bind_group.after(create_unit_buffer),rendering::prepare_bind_group.after(create_unit_buffer)).in_set(RenderSet::PrepareBindGroups),
         );
-
+        render_app.init_resource::<UnitBuffer>();
         let mut render_graph = render_app.world_mut().resource_mut::<RenderGraph>();
         render_graph.add_node(LogicLabel, LogicNode::default());
         render_graph.add_node(RenderingLabel, RenderNode::default());

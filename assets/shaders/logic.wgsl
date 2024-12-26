@@ -23,5 +23,8 @@ fn randomFloat(value: u32) -> f32 {
 
 @compute @workgroup_size(16, 1, 1)
 fn update(@builtin(global_invocation_id) invocation_id: vec3<u32>) {
-    
+    let index = i32(invocation_id.x); 
+    units[index] = Unit(
+        vec2<f32>(units[index].position.x + 0.1,units[index].position.y)
+    ); 
 }

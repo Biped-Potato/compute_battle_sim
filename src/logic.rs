@@ -7,7 +7,7 @@ use bevy::render::{
     renderer::{RenderContext, RenderDevice},
 };
 
-use crate::{SimulationUniforms, SIZE_X, SIZE_Y, WORKGROUP_SIZE};
+use crate::{UnitBuffer, SIZE_X, SIZE_Y, WORKGROUP_SIZE};
 const SHADER_ASSET_PATH: &str = "shaders/logic.wgsl";
 
 pub enum LogicState {
@@ -33,25 +33,16 @@ pub struct LogicBindGroup(BindGroup);
 pub fn prepare_bind_group(
     mut commands: Commands,
     pipeline: Res<LogicPipeline>,
-    simulation_uniforms: Res<SimulationUniforms>,
+    unit_buffer : Res<UnitBuffer>,
     render_device: Res<RenderDevice>,
 ) {
-    let mut byte_buffer = Vec::new();
-    let mut buffer = encase::StorageBuffer::new(&mut byte_buffer);
-    buffer.write(&simulation_uniforms.units).unwrap();
-
-    let storage = render_device.create_buffer_with_data(&BufferInitDescriptor {
-        label: None,
-        usage: BufferUsages::COPY_DST | BufferUsages::STORAGE | BufferUsages::COPY_SRC,
-        contents: buffer.into_inner(),
-    });
 
     let bind_group = render_device.create_bind_group(
         None,
         &pipeline.texture_bind_group_layout,
         &[BindGroupEntry {
             binding: 0,
-            resource: BindingResource::Buffer(storage.as_entire_buffer_binding()),
+            resource: BindingResource::Buffer(unit_buffer.0[0].as_entire_buffer_binding()),
         }],
     );
     commands.insert_resource(LogicBindGroup(bind_group));

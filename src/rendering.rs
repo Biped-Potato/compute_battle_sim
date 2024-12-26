@@ -9,7 +9,7 @@ use bevy::render::{
     texture::GpuImage,
 };
 
-use crate::{SimulationUniforms, SIZE, SIZE_X, SIZE_Y, WORKGROUP_SIZE};
+use crate::{SimulationUniforms, UnitBuffer, SIZE, SIZE_X, SIZE_Y, WORKGROUP_SIZE};
 const SHADER_ASSET_PATH: &str = "shaders/rendering.wgsl";
 
 pub enum RenderState {
@@ -37,18 +37,11 @@ pub fn prepare_bind_group(
     pipeline: Res<RenderingPipeline>,
     gpu_images: Res<RenderAssets<GpuImage>>,
     simulation_uniforms: Res<SimulationUniforms>,
+    unit_buffer : Res<UnitBuffer>,
     render_device: Res<RenderDevice>,
 ) {
     let render_texture = gpu_images.get(&simulation_uniforms.render_texture).unwrap();
-    let mut byte_buffer = Vec::new();
-    let mut buffer = encase::StorageBuffer::new(&mut byte_buffer);
-    buffer.write(&simulation_uniforms.units).unwrap();
-
-    let storage = render_device.create_buffer_with_data(&BufferInitDescriptor {
-        label: None,
-        usage: BufferUsages::COPY_DST | BufferUsages::STORAGE | BufferUsages::COPY_SRC,
-        contents: buffer.into_inner(),
-    });
+    
 
     let bind_group = render_device.create_bind_group(
         None,
@@ -56,7 +49,7 @@ pub fn prepare_bind_group(
         &[
             BindGroupEntry {
                 binding: 0,
-                resource: BindingResource::Buffer(storage.as_entire_buffer_binding()),
+                resource: BindingResource::Buffer(unit_buffer.0[0].as_entire_buffer_binding()),
             },
             BindGroupEntry {
                 binding: 1,
