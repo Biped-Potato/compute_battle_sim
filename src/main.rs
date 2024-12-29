@@ -6,22 +6,31 @@
 use bevy::{
     prelude::*,
     render::{
-        extract_resource::{ExtractResource, ExtractResourcePlugin}, render_asset::RenderAssetUsages, render_graph::{RenderGraph, RenderLabel}, render_resource::*, renderer::RenderDevice, Render, RenderApp, RenderSet
+        extract_resource::{ExtractResource, ExtractResourcePlugin},
+        render_asset::RenderAssetUsages,
+        render_graph::{RenderGraph, RenderLabel},
+        render_resource::*,
+        renderer::RenderDevice,
+        Render, RenderApp, RenderSet,
     },
 };
+use extra::fps_counter::FPSTextPlugin;
 use logic::{LogicNode, LogicPipeline};
 use rendering::{RenderNode, RenderingPipeline};
+
+use rand::{thread_rng, Rng};
+
 use unit::Unit;
 
+pub mod extra;
 pub mod logic;
 pub mod rendering;
 pub mod unit;
-
 const DISPLAY_FACTOR: u32 = 1;
-const SIZE: (u32, u32) = (1920 / DISPLAY_FACTOR, 1080 / DISPLAY_FACTOR);
+const SIZE: (u32, u32) = (1920 / DISPLAY_FACTOR, 1072 / DISPLAY_FACTOR);
 const WORKGROUP_SIZE: u32 = 16;
-const SIZE_X : u32 = 100;
-const SIZE_Y : u32 = 100;
+const SIZE_X: u32 = 200;
+const SIZE_Y: u32 = 200;
 fn main() {
     App::new()
         .insert_resource(ClearColor(Color::BLACK))
@@ -45,12 +54,12 @@ fn main() {
                 })
                 .set(ImagePlugin::default_nearest()),
             SimulationComputePlugin,
+            FPSTextPlugin,
         ))
         .add_systems(Startup, setup)
         .add_systems(Update, set_texture)
         .run();
 }
-
 
 fn setup(mut commands: Commands, mut images: ResMut<Assets<Image>>) {
     let mut image = Image::new_fill(
@@ -79,10 +88,24 @@ fn setup(mut commands: Commands, mut images: ResMut<Assets<Image>>) {
     commands.spawn(Camera2d);
 
     let mut units = Vec::new();
+    let mut rand = thread_rng();
 
     for x in 0..SIZE_X {
         for y in 0..SIZE_Y {
-            units.push(Unit { position: Vec2::new(x as f32, y as f32)*5.0 });
+            // units.push(Unit {
+            //     position: Vec2::new(
+            //         x as f32 - SIZE_X as f32 / 2.0 as f32,
+            //         y as f32 - SIZE_Y as f32 / 2.0 as f32,
+            //     ) * 2.0,
+            //     velocity: Vec2::new(0.,0.),
+            // });
+            units.push(Unit {
+                position: Vec2::new(
+                    rand.gen_range(-((SIZE.0/2 )as f32)..((SIZE.0/2) as f32)),
+                    rand.gen_range(-((SIZE.1/2 )as f32)..((SIZE.1/2 )as f32)),
+                ),
+                velocity: Vec2::new(0.,0.),
+            });
         }
     }
     commands.insert_resource(SimulationUniforms {
@@ -90,25 +113,50 @@ fn setup(mut commands: Commands, mut images: ResMut<Assets<Image>>) {
         units: units,
     });
 }
-#[derive(Resource,Default,Deref)]
+#[derive(Resource, Default, Deref)]
 pub struct UnitBuffer(Vec<Buffer>);
-fn create_unit_buffer(
+#[derive(Resource, Default, Deref)]
+pub struct SimulationUniformBuffer(Vec<Buffer>);
+
+#[derive(Clone, ShaderType)]
+pub struct UniformData {
+    pub dimensions: Vec2,
+    pub unit_count : i32,
+}
+fn create_buffers(
     simulation_uniforms: Res<SimulationUniforms>,
     render_device: Res<RenderDevice>,
-    mut unit_buffer : ResMut<UnitBuffer>,
+    mut unit_buffer: ResMut<UnitBuffer>,
+    mut uniform_buffer: ResMut<SimulationUniformBuffer>,
 ) {
-    if unit_buffer.0.len() == 0{
+    if unit_buffer.0.len() == 0 {
         let mut byte_buffer = Vec::new();
         let mut buffer = encase::StorageBuffer::new(&mut byte_buffer);
         buffer.write(&simulation_uniforms.units).unwrap();
-    
+
         let storage = render_device.create_buffer_with_data(&BufferInitDescriptor {
             label: None,
             usage: BufferUsages::COPY_DST | BufferUsages::STORAGE | BufferUsages::COPY_SRC,
             contents: buffer.into_inner(),
         });
         unit_buffer.0.push(storage);
-    } 
+
+        let uniform_data = UniformData {
+            dimensions: Vec2::new(SIZE.0 as f32, SIZE.1 as f32),
+            unit_count : (SIZE_X*SIZE_Y) as i32
+        };
+
+        let mut byte_buffer = Vec::new();
+        let mut buffer = encase::StorageBuffer::new(&mut byte_buffer);
+        buffer.write(&uniform_data).unwrap();
+
+        let uniform = render_device.create_buffer_with_data(&BufferInitDescriptor {
+            label: None,
+            usage: BufferUsages::COPY_DST | BufferUsages::UNIFORM | BufferUsages::COPY_SRC,
+            contents: buffer.into_inner(),
+        });
+        uniform_buffer.0.push(uniform);
+    }
 }
 fn set_texture(images: Res<SimulationUniforms>, mut sprite: Single<&mut Sprite>) {
     sprite.image = images.render_texture.clone_weak();
@@ -128,9 +176,16 @@ impl Plugin for SimulationComputePlugin {
         let render_app = app.sub_app_mut(RenderApp);
         render_app.add_systems(
             Render,
-            (create_unit_buffer,logic::prepare_bind_group.after(create_unit_buffer),rendering::prepare_bind_group.after(create_unit_buffer)).in_set(RenderSet::PrepareBindGroups),
+            (
+                create_buffers,
+                logic::prepare_bind_group.after(create_buffers),
+                rendering::prepare_bind_group.after(create_buffers),
+            )
+                .in_set(RenderSet::PrepareBindGroups),
         );
         render_app.init_resource::<UnitBuffer>();
+        render_app.init_resource::<SimulationUniformBuffer>();
+
         let mut render_graph = render_app.world_mut().resource_mut::<RenderGraph>();
         render_graph.add_node(LogicLabel, LogicNode::default());
         render_graph.add_node(RenderingLabel, RenderNode::default());

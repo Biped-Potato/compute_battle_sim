@@ -7,7 +7,7 @@ use bevy::render::{
     renderer::{RenderContext, RenderDevice},
 };
 
-use crate::{UnitBuffer, SIZE_X, SIZE_Y, WORKGROUP_SIZE};
+use crate::{SimulationUniformBuffer, UnitBuffer, SIZE_X, SIZE_Y, WORKGROUP_SIZE};
 const SHADER_ASSET_PATH: &str = "shaders/logic.wgsl";
 
 pub enum LogicState {
@@ -33,17 +33,23 @@ pub struct LogicBindGroup(BindGroup);
 pub fn prepare_bind_group(
     mut commands: Commands,
     pipeline: Res<LogicPipeline>,
-    unit_buffer : Res<UnitBuffer>,
+    unit_buffer: Res<UnitBuffer>,
+    uniform_buffer: Res<SimulationUniformBuffer>,
     render_device: Res<RenderDevice>,
 ) {
-
     let bind_group = render_device.create_bind_group(
         None,
         &pipeline.texture_bind_group_layout,
-        &[BindGroupEntry {
-            binding: 0,
-            resource: BindingResource::Buffer(unit_buffer.0[0].as_entire_buffer_binding()),
-        }],
+        &[
+            BindGroupEntry {
+                binding: 0,
+                resource: BindingResource::Buffer(unit_buffer.0[0].as_entire_buffer_binding()),
+            },
+            BindGroupEntry {
+                binding: 1,
+                resource: BindingResource::Buffer(uniform_buffer.0[0].as_entire_buffer_binding()),
+            },
+        ],
     );
     commands.insert_resource(LogicBindGroup(bind_group));
 }
@@ -59,16 +65,28 @@ impl FromWorld for LogicPipeline {
         let render_device = world.resource::<RenderDevice>();
         let texture_bind_group_layout = render_device.create_bind_group_layout(
             "LogicUniforms",
-            &[BindGroupLayoutEntry {
-                binding: 0,
-                visibility: ShaderStages::COMPUTE,
-                ty: BindingType::Buffer {
-                    ty: BufferBindingType::Storage { read_only: false },
-                    has_dynamic_offset: false,
-                    min_binding_size: None,
+            &[
+                BindGroupLayoutEntry {
+                    binding: 0,
+                    visibility: ShaderStages::COMPUTE,
+                    ty: BindingType::Buffer {
+                        ty: BufferBindingType::Storage { read_only: false },
+                        has_dynamic_offset: false,
+                        min_binding_size: None,
+                    },
+                    count: None,
                 },
-                count: None,
-            }],
+                BindGroupLayoutEntry {
+                    binding: 1,
+                    visibility: ShaderStages::COMPUTE,
+                    ty: BindingType::Buffer {
+                        ty: BufferBindingType::Uniform,
+                        has_dynamic_offset: false,
+                        min_binding_size: None,
+                    },
+                    count: None,
+                },
+            ],
         );
         let shader = world.load_asset(SHADER_ASSET_PATH);
         let pipeline_cache = world.resource::<PipelineCache>();
@@ -137,7 +155,7 @@ impl render_graph::Node for LogicNode {
                 pass.set_bind_group(0, bind_group, &[]);
                 pass.set_pipeline(update_pipeline);
 
-                pass.dispatch_workgroups((SIZE_X*SIZE_Y)/ WORKGROUP_SIZE, 1, 1);
+                pass.dispatch_workgroups((SIZE_X * SIZE_Y) / WORKGROUP_SIZE, 1, 1);
             }
         }
 

@@ -9,7 +9,9 @@ use bevy::render::{
     texture::GpuImage,
 };
 
-use crate::{SimulationUniforms, UnitBuffer, SIZE, SIZE_X, SIZE_Y, WORKGROUP_SIZE};
+use crate::{
+    SimulationUniformBuffer, SimulationUniforms, UnitBuffer, SIZE, SIZE_X, SIZE_Y, WORKGROUP_SIZE,
+};
 const SHADER_ASSET_PATH: &str = "shaders/rendering.wgsl";
 
 pub enum RenderState {
@@ -37,11 +39,11 @@ pub fn prepare_bind_group(
     pipeline: Res<RenderingPipeline>,
     gpu_images: Res<RenderAssets<GpuImage>>,
     simulation_uniforms: Res<SimulationUniforms>,
-    unit_buffer : Res<UnitBuffer>,
+    unit_buffer: Res<UnitBuffer>,
+    uniform_buffer: Res<SimulationUniformBuffer>,
     render_device: Res<RenderDevice>,
 ) {
     let render_texture = gpu_images.get(&simulation_uniforms.render_texture).unwrap();
-    
 
     let bind_group = render_device.create_bind_group(
         None,
@@ -55,6 +57,10 @@ pub fn prepare_bind_group(
                 binding: 1,
                 resource: BindingResource::TextureView(&render_texture.texture_view),
             },
+            BindGroupEntry {
+                binding: 2,
+                resource: BindingResource::Buffer(uniform_buffer.0[0].as_entire_buffer_binding()),
+            },
         ],
     );
     commands.insert_resource(RenderBindGroup(bind_group));
@@ -64,7 +70,7 @@ pub fn prepare_bind_group(
 pub struct RenderingPipeline {
     texture_bind_group_layout: BindGroupLayout,
     update_pipeline: CachedComputePipelineId,
-    clear_pipeline : CachedComputePipelineId,
+    clear_pipeline: CachedComputePipelineId,
 }
 
 impl FromWorld for RenderingPipeline {
@@ -93,6 +99,16 @@ impl FromWorld for RenderingPipeline {
                     },
                     count: None,
                 },
+                BindGroupLayoutEntry {
+                    binding: 2,
+                    visibility: ShaderStages::COMPUTE,
+                    ty: BindingType::Buffer {
+                        ty: BufferBindingType::Uniform,
+                        has_dynamic_offset: false,
+                        min_binding_size: None,
+                    },
+                    count: None,
+                },
             ],
         );
         let shader = world.load_asset(SHADER_ASSET_PATH);
@@ -101,12 +117,11 @@ impl FromWorld for RenderingPipeline {
             label: None,
             layout: vec![texture_bind_group_layout.clone()],
             push_constant_ranges: Vec::new(),
-            shader : shader.clone(),
+            shader: shader.clone(),
             shader_defs: vec![],
-            entry_point: Cow::from("update"),
+            entry_point: Cow::from("render"),
             zero_initialize_workgroup_memory: false,
         });
-
 
         let clear_pipeline = pipeline_cache.queue_compute_pipeline(ComputePipelineDescriptor {
             label: None,
@@ -175,7 +190,6 @@ impl render_graph::Node for RenderNode {
                 pass.set_pipeline(clear_pipeline);
 
                 pass.dispatch_workgroups(SIZE.0 / WORKGROUP_SIZE, SIZE.1 / WORKGROUP_SIZE, 1);
-
 
                 let update_pipeline = pipeline_cache
                     .get_compute_pipeline(pipeline.update_pipeline)

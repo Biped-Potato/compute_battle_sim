@@ -1,5 +1,11 @@
 struct Unit {
     position: vec2<f32>,
+    velocity : vec2<f32>,
+}
+
+struct UniformData{
+    dimensions : vec2<f32>,
+    unit_count : i32
 }
 
 @group(0) @binding(0)
@@ -7,6 +13,9 @@ var<storage, read_write> units: array<Unit>;
 
 @group(0) @binding(1)
 var texture: texture_storage_2d<rgba8unorm, read_write>;
+
+@group(0) @binding(2)
+var<uniform> uniform_data : UniformData;
 
 fn hash(value: u32) -> u32 {
     var state = value;
@@ -29,9 +38,12 @@ fn clear(@builtin(global_invocation_id) invocation_id: vec3<u32>,@builtin(num_wo
     textureStore(texture, location, vec4<f32>(0.0,0.0,0.0,0.0));
 }
 
+
 @compute @workgroup_size(16, 1, 1)
-fn update(@builtin(global_invocation_id) invocation_id: vec3<u32>) {
-    let position = units[i32(invocation_id.x)].position;
+fn render(@builtin(global_invocation_id) invocation_id: vec3<u32>) {
+    let position = units[i32(invocation_id.x)].position+uniform_data.dimensions/2.;
+
     let color = vec4f(1.0,1.0,1.0,1.0);
+
     textureStore(texture, vec2<i32>(i32(position.x),i32(position.y)), color);
 }
