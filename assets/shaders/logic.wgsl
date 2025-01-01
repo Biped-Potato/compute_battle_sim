@@ -5,7 +5,9 @@ struct Unit {
 
 struct UniformData{
     dimensions : vec2<f32>,
-    unit_count : i32
+    unit_count : i32,
+    level : i32,
+    step : i32,
 }
 
 @group(0) @binding(0)
@@ -13,6 +15,7 @@ var<storage, read_write> units: array<Unit>;
 
 @group(0) @binding(1)
 var<uniform> uniform_data : UniformData;
+
 
 fn hash(value: u32) -> u32 {
     var state = value;
@@ -37,6 +40,45 @@ const centering_factor : f32 = 0.05;
 
 const visible_range : f32 = 10.0;
 const protected_range : f32 = 5.0;
+
+@compute @workgroup_size(16, 1, 1)
+fn sort(@builtin(global_invocation_id) invocation_id: vec3<u32>){
+
+    let idx_start = i32(invocation_id.x)*16;
+
+    let half_step = uniform_data.step/2;
+    for(var j = 0;j<16;j++){
+
+        let i = idx_start + j;
+
+        let low = (i/half_step) * uniform_data.step + (i % half_step);
+                
+        let direction = ((low/uniform_data.level) + 1)%2;
+
+        compare(
+            u32(low),
+            u32(low + half_step),
+            direction,
+        );
+    }
+}
+
+fn compare(a: u32, b: u32, direction: i32) {
+    let e = bool_to_int(units[a].position.x > units[b].position.x);
+    if direction == e {
+        // Swap positions
+        let temp = units[a];
+        units[a] = units[b];
+        units[b] = temp;
+    }
+}
+
+fn bool_to_int(b: bool) -> i32 {
+    if b {
+        return 1;
+    }
+    return 0;
+}
 @compute @workgroup_size(16, 1, 1)
 fn update(@builtin(global_invocation_id) invocation_id: vec3<u32>) {
     let index = i32(invocation_id.x); 

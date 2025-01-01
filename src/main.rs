@@ -20,17 +20,21 @@ use rendering::{RenderNode, RenderingPipeline};
 
 use rand::{thread_rng, Rng};
 
+use sort::sort::{SortLabel, SortNode};
 use unit::Unit;
 
 pub mod extra;
 pub mod logic;
 pub mod rendering;
+pub mod sort;
 pub mod unit;
+
 const DISPLAY_FACTOR: u32 = 1;
 const SIZE: (u32, u32) = (1920 / DISPLAY_FACTOR, 1072 / DISPLAY_FACTOR);
 const WORKGROUP_SIZE: u32 = 16;
 const SIZE_X: u32 = 200;
 const SIZE_Y: u32 = 200;
+const COUNT : i32 = nearest_base(SIZE_X as i32*SIZE_Y as i32,2);
 fn main() {
     App::new()
         .insert_resource(ClearColor(Color::BLACK))
@@ -60,7 +64,13 @@ fn main() {
         .add_systems(Update, set_texture)
         .run();
 }
-
+const fn nearest_base(input: i32, base: i32) -> i32 {
+    let num = 2_i32.pow(base as u32);
+    if input > num {
+        return nearest_base(input, base + 1);
+    }
+    return num;
+}
 fn setup(mut commands: Commands, mut images: ResMut<Assets<Image>>) {
     let mut image = Image::new_fill(
         Extent3d {
@@ -89,24 +99,15 @@ fn setup(mut commands: Commands, mut images: ResMut<Assets<Image>>) {
 
     let mut units = Vec::new();
     let mut rand = thread_rng();
-
-    for x in 0..SIZE_X {
-        for y in 0..SIZE_Y {
-            // units.push(Unit {
-            //     position: Vec2::new(
-            //         x as f32 - SIZE_X as f32 / 2.0 as f32,
-            //         y as f32 - SIZE_Y as f32 / 2.0 as f32,
-            //     ) * 2.0,
-            //     velocity: Vec2::new(0.,0.),
-            // });
-            units.push(Unit {
-                position: Vec2::new(
-                    rand.gen_range(-((SIZE.0/2 )as f32)..((SIZE.0/2) as f32)),
-                    rand.gen_range(-((SIZE.1/2 )as f32)..((SIZE.1/2 )as f32)),
-                ),
-                velocity: Vec2::new(0.,0.),
-            });
-        }
+    println!("{}",COUNT);
+    for i in 0..COUNT {
+        units.push(Unit {
+            position: Vec2::new(
+                rand.gen_range(-((SIZE.0 / 2) as f32)..((SIZE.0 / 2) as f32)),
+                rand.gen_range(-((SIZE.1 / 2) as f32)..((SIZE.1 / 2) as f32)),
+            ),
+            velocity: Vec2::new(0., 0.),
+        });
     }
     commands.insert_resource(SimulationUniforms {
         render_texture: image,
@@ -121,7 +122,10 @@ pub struct SimulationUniformBuffer(Vec<Buffer>);
 #[derive(Clone, ShaderType)]
 pub struct UniformData {
     pub dimensions: Vec2,
-    pub unit_count : i32,
+    pub unit_count: i32,
+    //for bitonic sort
+    pub level  : i32,
+    pub step : i32,
 }
 fn create_buffers(
     simulation_uniforms: Res<SimulationUniforms>,
@@ -143,7 +147,9 @@ fn create_buffers(
 
         let uniform_data = UniformData {
             dimensions: Vec2::new(SIZE.0 as f32, SIZE.1 as f32),
-            unit_count : (SIZE_X*SIZE_Y) as i32
+            unit_count: COUNT as i32,
+            level : 1,
+            step : 1,
         };
 
         let mut byte_buffer = Vec::new();
@@ -158,8 +164,8 @@ fn create_buffers(
         uniform_buffer.0.push(uniform);
     }
 }
-fn set_texture(images: Res<SimulationUniforms>, mut sprite: Single<&mut Sprite>) {
-    sprite.image = images.render_texture.clone_weak();
+fn set_texture(images: Res<SimulationUniforms>, sprite: Single<&mut Sprite>) {
+    //sprite.image = images.render_texture.clone_weak();
 }
 
 pub struct SimulationComputePlugin;
@@ -187,11 +193,39 @@ impl Plugin for SimulationComputePlugin {
         render_app.init_resource::<SimulationUniformBuffer>();
 
         let mut render_graph = render_app.world_mut().resource_mut::<RenderGraph>();
+
+
+        let num = COUNT.ilog(2) as i32;
+        let mut node_id = 0;
+        let mut sort_label = SortLabel(0);
+        for pass in 1..=num {
+            let level = 2_i32.pow(pass as u32);
+            for pass_exp in (1..=pass).rev() {
+                let step = 2_i32.pow(pass_exp as u32);
+                sort_label = SortLabel(node_id);
+                render_graph.add_node(
+                    sort_label.clone(),
+                    SortNode {
+                        state : sort::sort::SortState::Loading,
+                        level: level,
+                        step: step,
+                    },
+                );
+                if node_id == 0 {
+                    render_graph.add_node_edge(sort_label.clone(), bevy::render::graph::CameraDriverLabel);
+                }
+                else{
+                    render_graph.add_node_edge(sort_label.clone(),  SortLabel(node_id-1));
+                }
+                node_id+=1;
+            }
+        }
+
         render_graph.add_node(LogicLabel, LogicNode::default());
         render_graph.add_node(RenderingLabel, RenderNode::default());
 
         render_graph.add_node_edge(RenderingLabel, LogicLabel);
-        render_graph.add_node_edge(LogicLabel, bevy::render::graph::CameraDriverLabel);
+        render_graph.add_node_edge(LogicLabel, sort_label.clone());
     }
 
     fn finish(&self, app: &mut App) {

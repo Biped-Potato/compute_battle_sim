@@ -7,7 +7,7 @@ use bevy::render::{
     renderer::{RenderContext, RenderDevice},
 };
 
-use crate::{SimulationUniformBuffer, UnitBuffer, SIZE_X, SIZE_Y, WORKGROUP_SIZE};
+use crate::{SimulationUniformBuffer, UnitBuffer, COUNT, SIZE_X, SIZE_Y, WORKGROUP_SIZE};
 const SHADER_ASSET_PATH: &str = "shaders/logic.wgsl";
 
 pub enum LogicState {
@@ -28,7 +28,7 @@ impl Default for LogicNode {
 }
 
 #[derive(Resource)]
-pub struct LogicBindGroup(BindGroup);
+pub struct LogicBindGroup(pub BindGroup);
 
 pub fn prepare_bind_group(
     mut commands: Commands,
@@ -56,8 +56,9 @@ pub fn prepare_bind_group(
 
 #[derive(Resource)]
 pub struct LogicPipeline {
-    texture_bind_group_layout: BindGroupLayout,
-    update_pipeline: CachedComputePipelineId,
+    pub texture_bind_group_layout: BindGroupLayout,
+    pub sort_pipeline : CachedComputePipelineId,
+    pub update_pipeline: CachedComputePipelineId,
 }
 
 impl FromWorld for LogicPipeline {
@@ -94,14 +95,25 @@ impl FromWorld for LogicPipeline {
             label: None,
             layout: vec![texture_bind_group_layout.clone()],
             push_constant_ranges: Vec::new(),
-            shader,
+            shader : shader.clone(),
             shader_defs: vec![],
             entry_point: Cow::from("update"),
             zero_initialize_workgroup_memory: false,
         });
 
+        let sort_pipeline = pipeline_cache.queue_compute_pipeline(ComputePipelineDescriptor {
+            label: None,
+            layout: vec![texture_bind_group_layout.clone()],
+            push_constant_ranges: Vec::new(),
+            shader,
+            shader_defs: vec![],
+            entry_point: Cow::from("sort"),
+            zero_initialize_workgroup_memory: false,
+        });
+
         LogicPipeline {
             texture_bind_group_layout,
+            sort_pipeline,
             update_pipeline,
         }
     }
@@ -155,7 +167,7 @@ impl render_graph::Node for LogicNode {
                 pass.set_bind_group(0, bind_group, &[]);
                 pass.set_pipeline(update_pipeline);
 
-                pass.dispatch_workgroups((SIZE_X * SIZE_Y) / WORKGROUP_SIZE, 1, 1);
+                pass.dispatch_workgroups((COUNT as u32) / WORKGROUP_SIZE, 1, 1);
             }
         }
 
