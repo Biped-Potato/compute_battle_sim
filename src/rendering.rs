@@ -9,9 +9,7 @@ use bevy::render::{
     texture::GpuImage,
 };
 
-use crate::{
-    SimulationUniformBuffer, SimulationUniforms, UnitBuffer, COUNT, SIZE, SIZE_X, SIZE_Y, WORKGROUP_SIZE
-};
+use crate::{SimulationUniformBuffer, SimulationUniforms, UnitBuffer, COUNT, SIZE, WORKGROUP_SIZE};
 const SHADER_ASSET_PATH: &str = "shaders/rendering.wgsl";
 
 pub enum RenderState {
@@ -175,18 +173,17 @@ impl render_graph::Node for RenderNode {
         let pipeline_cache = world.resource::<PipelineCache>();
         let pipeline = world.resource::<RenderingPipeline>();
 
-        
-
         // select the pipeline based on the current state
         match self.state {
             RenderState::Loading => {}
             RenderState::Update => {
-                let mut pass = render_context
-                .command_encoder()
-                .begin_compute_pass(&ComputePassDescriptor{
-                    label : Some(&"Render Pass"),
-                    ..Default::default()
-                });
+                let mut pass =
+                    render_context
+                        .command_encoder()
+                        .begin_compute_pass(&ComputePassDescriptor {
+                            label: Some(&"Render Pass"),
+                            ..Default::default()
+                        });
 
                 let clear_pipeline = pipeline_cache
                     .get_compute_pipeline(pipeline.clear_pipeline)
@@ -203,8 +200,6 @@ impl render_graph::Node for RenderNode {
                 pass.set_pipeline(update_pipeline);
 
                 pass.dispatch_workgroups((COUNT as u32) / WORKGROUP_SIZE, 1, 1);
-                
-
             }
         }
 

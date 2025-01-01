@@ -4,14 +4,15 @@
 //! is rendered to the screen.
 
 use bevy::{
-    core_pipeline::oit::resolve::node, prelude::*, render::{
+    prelude::*,
+    render::{
         extract_resource::{ExtractResource, ExtractResourcePlugin},
         render_asset::RenderAssetUsages,
         render_graph::{RenderGraph, RenderLabel},
         render_resource::*,
         renderer::RenderDevice,
         Render, RenderApp, RenderSet,
-    }
+    },
 };
 use extra::fps_counter::FPSTextPlugin;
 use logic::{LogicNode, LogicPipeline};
@@ -19,21 +20,19 @@ use rendering::{RenderNode, RenderingPipeline};
 
 use rand::{thread_rng, Rng};
 
-use sort::sort::{SortLabel, SortNode};
 use unit::Unit;
 
 pub mod extra;
 pub mod logic;
 pub mod rendering;
-pub mod sort;
 pub mod unit;
 
 const DISPLAY_FACTOR: u32 = 1;
 const SIZE: (u32, u32) = (1920 / DISPLAY_FACTOR, 1072 / DISPLAY_FACTOR);
 const WORKGROUP_SIZE: u32 = 16;
-const SIZE_X: u32 = 100;
-const SIZE_Y: u32 = 100;
-const COUNT : i32 = nearest_base(SIZE_X as i32*SIZE_Y as i32,2);
+const SIZE_X: u32 = 200;
+const SIZE_Y: u32 = 200;
+const COUNT: i32 = nearest_base(SIZE_X as i32 * SIZE_Y as i32, 2);
 fn main() {
     App::new()
         .insert_resource(ClearColor(Color::BLACK))
@@ -59,6 +58,7 @@ fn main() {
             SimulationComputePlugin,
             FPSTextPlugin,
         ))
+        .add_systems(Update,exit_on_esc)
         .add_systems(Startup, setup)
         .add_systems(Update, set_texture)
         .run();
@@ -69,6 +69,12 @@ const fn nearest_base(input: i32, base: i32) -> i32 {
         return nearest_base(input, base + 1);
     }
     return num;
+}
+fn exit_on_esc(mut writer: EventWriter<AppExit>,
+    input : Res<ButtonInput<KeyCode>>){
+    if input.pressed(KeyCode::Escape) {
+        writer.send(AppExit::Success);
+    }
 }
 fn setup(mut commands: Commands, mut images: ResMut<Assets<Image>>) {
     let mut image = Image::new_fill(
@@ -98,9 +104,11 @@ fn setup(mut commands: Commands, mut images: ResMut<Assets<Image>>) {
 
     let mut units = Vec::new();
     let mut rand = thread_rng();
-    println!("{}",COUNT);
-    for i in 0..COUNT {
+    println!("{}", COUNT);
+    for _i in 0..COUNT {
         units.push(Unit {
+            hash_id: -1,
+            start_index: -1,
             position: Vec2::new(
                 rand.gen_range(-((SIZE.0 / 2) as f32)..((SIZE.0 / 2) as f32)),
                 rand.gen_range(-((SIZE.1 / 2) as f32)..((SIZE.1 / 2) as f32)),
@@ -118,19 +126,25 @@ pub struct UnitBuffer(Vec<Buffer>);
 #[derive(Resource, Default, Deref)]
 pub struct SimulationUniformBuffer(Vec<Buffer>);
 
+#[derive(Resource,Default,Deref)]
+pub struct IndicesBuffer(Vec<Buffer>);
 #[derive(Clone, ShaderType)]
 pub struct UniformData {
     pub dimensions: Vec2,
     pub unit_count: i32,
     //for bitonic sort
-    pub level  : i32,
-    pub step : i32,
+    pub level: i32,
+    pub step: i32,
+    pub grid_size : i32,
 }
+const GRID_SIZE : i32 = 15;
+const HASH_SIZE : i32 = (SIZE.0 * SIZE.1) as i32/(GRID_SIZE*GRID_SIZE);
 fn create_buffers(
     simulation_uniforms: Res<SimulationUniforms>,
     render_device: Res<RenderDevice>,
     mut unit_buffer: ResMut<UnitBuffer>,
     mut uniform_buffer: ResMut<SimulationUniformBuffer>,
+    mut indices_buffer : ResMut<IndicesBuffer>,
 ) {
     if unit_buffer.0.len() == 0 {
         let mut byte_buffer = Vec::new();
@@ -147,8 +161,9 @@ fn create_buffers(
         let uniform_data = UniformData {
             dimensions: Vec2::new(SIZE.0 as f32, SIZE.1 as f32),
             unit_count: COUNT as i32,
-            level : 1,
-            step : 1,
+            level: 1,
+            step: 1,
+            grid_size : GRID_SIZE, 
         };
 
         let mut byte_buffer = Vec::new();
@@ -161,9 +176,23 @@ fn create_buffers(
             contents: buffer.into_inner(),
         });
         uniform_buffer.0.push(uniform);
+
+        let mut byte_buffer = Vec::new();
+        let mut buffer = encase::StorageBuffer::new(&mut byte_buffer);
+
+
+        buffer.write(&vec![-1; HASH_SIZE as usize]).unwrap();
+
+        let storage = render_device.create_buffer_with_data(&BufferInitDescriptor {
+            label: None,
+            usage: BufferUsages::COPY_DST | BufferUsages::STORAGE | BufferUsages::COPY_SRC,
+            contents: buffer.into_inner(),
+        });
+        indices_buffer.0.push(storage);
+
     }
 }
-fn set_texture(images: Res<SimulationUniforms>, sprite: Single<&mut Sprite>) {
+fn set_texture(_images: Res<SimulationUniforms>, _sprite: Single<&mut Sprite>) {
     //sprite.image = images.render_texture.clone_weak();
 }
 
@@ -190,6 +219,7 @@ impl Plugin for SimulationComputePlugin {
         );
         render_app.init_resource::<UnitBuffer>();
         render_app.init_resource::<SimulationUniformBuffer>();
+        render_app.init_resource::<IndicesBuffer>();
 
         let mut render_graph = render_app.world_mut().resource_mut::<RenderGraph>();
 
@@ -198,36 +228,6 @@ impl Plugin for SimulationComputePlugin {
 
         render_graph.add_node_edge(LogicLabel, RenderingLabel);
         render_graph.add_node_edge(RenderingLabel, bevy::render::graph::CameraDriverLabel);
-        
-        let num = COUNT.ilog(2) as i32;
-        let mut node_id = 0;
-        let mut sort_label = SortLabel(0);
-
-        for pass in 1..=num {
-            let level = 2_i32.pow(pass as u32);
-            for pass_exp in (1..=pass).rev() {
-                let step = 2_i32.pow(pass_exp as u32);
-                sort_label = SortLabel(node_id);
-                render_graph.add_node(
-                    sort_label.clone(),
-                    SortNode {
-                        state : sort::sort::SortState::Loading,
-                        level: level,
-                        step: step,
-                    },
-                );
-                if node_id == 0 {
-                    render_graph.add_node_edge(sort_label.clone(), LogicLabel);
-                }
-                else{
-                    render_graph.add_node_edge(sort_label.clone(),  SortLabel(node_id-1));
-                }
-                node_id+=1;
-            }
-        }
-        
-
-        
     }
 
     fn finish(&self, app: &mut App) {
