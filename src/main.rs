@@ -23,10 +23,10 @@ use rand::{thread_rng, Rng};
 use unit::Unit;
 
 pub mod extra;
+pub mod helpers;
 pub mod logic;
 pub mod rendering;
 pub mod unit;
-
 const DISPLAY_FACTOR: u32 = 1;
 const SIZE: (u32, u32) = (1920 / DISPLAY_FACTOR, 1072 / DISPLAY_FACTOR);
 const WORKGROUP_SIZE: u32 = 16;
@@ -58,7 +58,7 @@ fn main() {
             SimulationComputePlugin,
             FPSTextPlugin,
         ))
-        .add_systems(Update,exit_on_esc)
+        .add_systems(Update, exit_on_esc)
         .add_systems(Startup, setup)
         .add_systems(Update, set_texture)
         .run();
@@ -70,8 +70,7 @@ const fn nearest_base(input: i32, base: i32) -> i32 {
     }
     return num;
 }
-fn exit_on_esc(mut writer: EventWriter<AppExit>,
-    input : Res<ButtonInput<KeyCode>>){
+fn exit_on_esc(mut writer: EventWriter<AppExit>, input: Res<ButtonInput<KeyCode>>) {
     if input.pressed(KeyCode::Escape) {
         writer.send(AppExit::Success);
     }
@@ -126,7 +125,7 @@ pub struct UnitBuffer(Vec<Buffer>);
 #[derive(Resource, Default, Deref)]
 pub struct SimulationUniformBuffer(Vec<Buffer>);
 
-#[derive(Resource,Default,Deref)]
+#[derive(Resource, Default, Deref)]
 pub struct IndicesBuffer(Vec<Buffer>);
 #[derive(Clone, ShaderType)]
 pub struct UniformData {
@@ -135,16 +134,16 @@ pub struct UniformData {
     //for bitonic sort
     pub level: i32,
     pub step: i32,
-    pub grid_size : i32,
+    pub grid_size: i32,
 }
-const GRID_SIZE : i32 = 15;
-const HASH_SIZE : i32 = (SIZE.0 * SIZE.1) as i32/(GRID_SIZE*GRID_SIZE);
+const GRID_SIZE: i32 = 15;
+const HASH_SIZE: i32 = (SIZE.0 * SIZE.1) as i32 / (GRID_SIZE * GRID_SIZE);
 fn create_buffers(
     simulation_uniforms: Res<SimulationUniforms>,
     render_device: Res<RenderDevice>,
     mut unit_buffer: ResMut<UnitBuffer>,
     mut uniform_buffer: ResMut<SimulationUniformBuffer>,
-    mut indices_buffer : ResMut<IndicesBuffer>,
+    mut indices_buffer: ResMut<IndicesBuffer>,
 ) {
     if unit_buffer.0.len() == 0 {
         let mut byte_buffer = Vec::new();
@@ -163,7 +162,7 @@ fn create_buffers(
             unit_count: COUNT as i32,
             level: 1,
             step: 1,
-            grid_size : GRID_SIZE, 
+            grid_size: GRID_SIZE,
         };
 
         let mut byte_buffer = Vec::new();
@@ -180,7 +179,6 @@ fn create_buffers(
         let mut byte_buffer = Vec::new();
         let mut buffer = encase::StorageBuffer::new(&mut byte_buffer);
 
-
         buffer.write(&vec![-1; HASH_SIZE as usize]).unwrap();
 
         let storage = render_device.create_buffer_with_data(&BufferInitDescriptor {
@@ -189,7 +187,6 @@ fn create_buffers(
             contents: buffer.into_inner(),
         });
         indices_buffer.0.push(storage);
-
     }
 }
 fn set_texture(_images: Res<SimulationUniforms>, _sprite: Single<&mut Sprite>) {

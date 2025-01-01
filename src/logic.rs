@@ -7,9 +7,14 @@ use bevy::render::{
     renderer::{RenderContext, RenderDevice},
 };
 
-use crate::{IndicesBuffer, SimulationUniformBuffer, UniformData, UnitBuffer, COUNT, GRID_SIZE, SIZE, WORKGROUP_SIZE};
+use crate::helpers::helpers::get_pipeline_states;
+use crate::{
+    IndicesBuffer, SimulationUniformBuffer, UniformData, UnitBuffer, COUNT, GRID_SIZE, SIZE,
+    WORKGROUP_SIZE,
+};
 const SHADER_ASSET_PATH: &str = "shaders/logic.wgsl";
 
+#[derive(PartialEq)]
 pub enum LogicState {
     Loading,
     Update,
@@ -35,7 +40,7 @@ pub fn prepare_bind_group(
     pipeline: Res<LogicPipeline>,
     unit_buffer: Res<UnitBuffer>,
     uniform_buffer: Res<SimulationUniformBuffer>,
-    indices_buffer : Res<IndicesBuffer>,
+    indices_buffer: Res<IndicesBuffer>,
     render_device: Res<RenderDevice>,
 ) {
     let bind_group = render_device.create_bind_group(
@@ -51,9 +56,9 @@ pub fn prepare_bind_group(
                 resource: BindingResource::Buffer(indices_buffer.0[0].as_entire_buffer_binding()),
             },
             BindGroupEntry {
-                binding : 2,
-                resource : BindingResource::Buffer(uniform_buffer.0[0].as_entire_buffer_binding()),
-            }
+                binding: 2,
+                resource: BindingResource::Buffer(uniform_buffer.0[0].as_entire_buffer_binding()),
+            },
         ],
     );
     commands.insert_resource(LogicBindGroup(bind_group));
@@ -161,20 +166,15 @@ impl render_graph::Node for LogicNode {
         let pipeline = world.resource::<LogicPipeline>();
         let pipeline_cache = world.resource::<PipelineCache>();
 
-        // if the corresponding pipeline has loaded, transition to the next stage
-        match self.state {
-            LogicState::Loading => {
-                match pipeline_cache.get_compute_pipeline_state(pipeline.update_pipeline) {
-                    CachedPipelineState::Ok(_) => {
-                        self.state = LogicState::Update;
-                    }
-                    CachedPipelineState::Err(err) => {
-                        panic!("Initializing assets/{SHADER_ASSET_PATH}:\n{err}")
-                    }
-                    _ => {}
-                }
-            }
-            LogicState::Update => {
+        if self.state == LogicState::Loading {
+            let ids = vec![
+                pipeline.sort_pipeline,
+                pipeline.hash_pipeline,
+                pipeline.hash_indices_pipeline,
+                pipeline.update_pipeline,
+            ];
+    
+            if get_pipeline_states(ids, &pipeline_cache, SHADER_ASSET_PATH.to_owned()) {
                 self.state = LogicState::Update;
             }
         }
@@ -227,7 +227,7 @@ impl render_graph::Node for LogicNode {
                             unit_count: COUNT as i32,
                             level: level,
                             step: step,
-                            grid_size : GRID_SIZE,
+                            grid_size: GRID_SIZE,
                         };
 
                         let mut byte_buffer = Vec::new();
@@ -255,7 +255,9 @@ impl render_graph::Node for LogicNode {
                                 },
                                 BindGroupEntry {
                                     binding: 1,
-                                    resource: BindingResource::Buffer(indices_buffer.0[0].as_entire_buffer_binding()),
+                                    resource: BindingResource::Buffer(
+                                        indices_buffer.0[0].as_entire_buffer_binding(),
+                                    ),
                                 },
                                 BindGroupEntry {
                                     binding: 2,
@@ -304,7 +306,6 @@ impl render_graph::Node for LogicNode {
                 pass_2.set_pipeline(hash_id_pipeline);
 
                 pass_2.dispatch_workgroups((COUNT as u32) / WORKGROUP_SIZE, 1, 1);
-
 
                 drop(pass_2);
 

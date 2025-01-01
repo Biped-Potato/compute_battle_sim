@@ -21,11 +21,11 @@ var<storage, read_write> indices : array<u32>;
 @group(0) @binding(2)
 var<uniform> uniform_data : UniformData;
 
-const targeting_factor : f32 = 0.001;
+const targeting_factor : f32 = 0.01;
 
-const matching_factor : f32 = 0.05;
-const avoid_factor : f32 = 0.03;
-const centering_factor : f32 = 0.05;
+const matching_factor : f32 = 0.01;
+const avoid_factor : f32 = 0.01;
+const centering_factor : f32 = 0.01;
 
 const visible_range : f32 = 10.0;
 const protected_range : f32 = 5.0;

@@ -9,9 +9,11 @@ use bevy::render::{
     texture::GpuImage,
 };
 
+use crate::helpers::helpers::get_pipeline_states;
 use crate::{SimulationUniformBuffer, SimulationUniforms, UnitBuffer, COUNT, SIZE, WORKGROUP_SIZE};
 const SHADER_ASSET_PATH: &str = "shaders/rendering.wgsl";
 
+#[derive(PartialEq)]
 pub enum RenderState {
     Loading,
     Update,
@@ -144,20 +146,9 @@ impl render_graph::Node for RenderNode {
         let pipeline = world.resource::<RenderingPipeline>();
         let pipeline_cache = world.resource::<PipelineCache>();
 
-        // if the corresponding pipeline has loaded, transition to the next stage
-        match self.state {
-            RenderState::Loading => {
-                match pipeline_cache.get_compute_pipeline_state(pipeline.update_pipeline) {
-                    CachedPipelineState::Ok(_) => {
-                        self.state = RenderState::Update;
-                    }
-                    CachedPipelineState::Err(err) => {
-                        panic!("Initializing assets/{SHADER_ASSET_PATH}:\n{err}")
-                    }
-                    _ => {}
-                }
-            }
-            RenderState::Update => {
+        if self.state == RenderState::Loading {
+            let ids = vec![pipeline.update_pipeline, pipeline.clear_pipeline];
+            if get_pipeline_states(ids, &pipeline_cache, SHADER_ASSET_PATH.to_owned()) {
                 self.state = RenderState::Update;
             }
         }
