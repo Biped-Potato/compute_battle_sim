@@ -145,6 +145,7 @@ fn update(@builtin(global_invocation_id) invocation_id: vec3<u32>) {
     velocity = normalize(velocity) * clamp(length(velocity),-max_speed,max_speed);
     
     position += velocity;
+
     //clamp in bounds
     if (position.x > uniform_data.dimensions.x/2.){
         position.x -= uniform_data.dimensions.x;

@@ -10,7 +10,7 @@ use bevy::render::{
 };
 
 use crate::{
-    SimulationUniformBuffer, SimulationUniforms, UnitBuffer, SIZE, SIZE_X, SIZE_Y, WORKGROUP_SIZE,
+    SimulationUniformBuffer, SimulationUniforms, UnitBuffer, COUNT, SIZE, SIZE_X, SIZE_Y, WORKGROUP_SIZE
 };
 const SHADER_ASSET_PATH: &str = "shaders/rendering.wgsl";
 
@@ -197,7 +197,7 @@ impl render_graph::Node for RenderNode {
                 pass.set_bind_group(0, bind_group, &[]);
                 pass.set_pipeline(update_pipeline);
 
-                pass.dispatch_workgroups((SIZE_X * SIZE_Y) / WORKGROUP_SIZE, 1, 1);
+                pass.dispatch_workgroups((COUNT as u32) / WORKGROUP_SIZE, 1, 1);
             }
         }
 

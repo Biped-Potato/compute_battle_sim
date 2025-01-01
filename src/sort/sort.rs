@@ -105,6 +105,7 @@ impl render_graph::Node for SortNode {
                 pass.set_pipeline(sort_pipeline);
 
                 pass.dispatch_workgroups((COUNT as u32)/(2*WORKGROUP_SIZE), 1, 1);
+                
             }
         }
 
