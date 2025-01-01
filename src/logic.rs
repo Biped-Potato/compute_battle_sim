@@ -153,14 +153,19 @@ impl render_graph::Node for LogicNode {
         let pipeline_cache = world.resource::<PipelineCache>();
         let pipeline = world.resource::<LogicPipeline>();
 
-        let mut pass = render_context
-            .command_encoder()
-            .begin_compute_pass(&ComputePassDescriptor::default());
+        
 
         // select the pipeline based on the current state
         match self.state {
             LogicState::Loading => {}
             LogicState::Update => {
+                let mut pass = render_context
+                    .command_encoder()
+                    .begin_compute_pass(&ComputePassDescriptor{
+                        label : Some(&"update"),
+                        ..Default::default()
+                    });
+
                 let update_pipeline = pipeline_cache
                     .get_compute_pipeline(pipeline.update_pipeline)
                     .unwrap();

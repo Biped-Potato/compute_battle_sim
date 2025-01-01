@@ -47,10 +47,7 @@ fn sort(@builtin(global_invocation_id) invocation_id: vec3<u32>){
     let idx_start = i32(invocation_id.x)*16;
 
     let half_step = uniform_data.step/2;
-    for(var j = 0;j<16;j++){
-
-        let i = idx_start + j;
-
+    for(var i = idx_start;i<idx_start+16;i++){
         let low = (i/half_step) * uniform_data.step + (i % half_step);
                 
         let direction = ((low/uniform_data.level) + 1)%2;
@@ -64,9 +61,11 @@ fn sort(@builtin(global_invocation_id) invocation_id: vec3<u32>){
 }
 
 fn compare(a: u32, b: u32, direction: i32) {
-    let e = bool_to_int(units[a].position.x > units[b].position.x);
+    var e : i32 = 0;
+    if (units[a].position.x > units[b].position.x){
+        e = 1;
+    }
     if direction == e {
-        // Swap positions
         let temp = units[a];
         units[a] = units[b];
         units[b] = temp;

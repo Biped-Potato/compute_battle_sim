@@ -4,15 +4,14 @@
 //! is rendered to the screen.
 
 use bevy::{
-    prelude::*,
-    render::{
+    core_pipeline::oit::resolve::node, prelude::*, render::{
         extract_resource::{ExtractResource, ExtractResourcePlugin},
         render_asset::RenderAssetUsages,
         render_graph::{RenderGraph, RenderLabel},
         render_resource::*,
         renderer::RenderDevice,
         Render, RenderApp, RenderSet,
-    },
+    }
 };
 use extra::fps_counter::FPSTextPlugin;
 use logic::{LogicNode, LogicPipeline};
@@ -33,7 +32,7 @@ const DISPLAY_FACTOR: u32 = 1;
 const SIZE: (u32, u32) = (1920 / DISPLAY_FACTOR, 1072 / DISPLAY_FACTOR);
 const WORKGROUP_SIZE: u32 = 16;
 const SIZE_X: u32 = 100;
-const SIZE_Y: u32 = 10;
+const SIZE_Y: u32 = 100;
 const COUNT : i32 = nearest_base(SIZE_X as i32*SIZE_Y as i32,2);
 fn main() {
     App::new()
@@ -194,10 +193,16 @@ impl Plugin for SimulationComputePlugin {
 
         let mut render_graph = render_app.world_mut().resource_mut::<RenderGraph>();
 
+        render_graph.add_node(LogicLabel, LogicNode::default());
+        render_graph.add_node(RenderingLabel, RenderNode::default());
 
+        render_graph.add_node_edge(LogicLabel, RenderingLabel);
+        render_graph.add_node_edge(RenderingLabel, bevy::render::graph::CameraDriverLabel);
+        
         let num = COUNT.ilog(2) as i32;
         let mut node_id = 0;
         let mut sort_label = SortLabel(0);
+
         for pass in 1..=num {
             let level = 2_i32.pow(pass as u32);
             for pass_exp in (1..=pass).rev() {
@@ -212,7 +217,7 @@ impl Plugin for SimulationComputePlugin {
                     },
                 );
                 if node_id == 0 {
-                    render_graph.add_node_edge(sort_label.clone(), bevy::render::graph::CameraDriverLabel);
+                    render_graph.add_node_edge(sort_label.clone(), LogicLabel);
                 }
                 else{
                     render_graph.add_node_edge(sort_label.clone(),  SortLabel(node_id-1));
@@ -220,12 +225,9 @@ impl Plugin for SimulationComputePlugin {
                 node_id+=1;
             }
         }
+        
 
-        render_graph.add_node(LogicLabel, LogicNode::default());
-        render_graph.add_node(RenderingLabel, RenderNode::default());
-
-        render_graph.add_node_edge(RenderingLabel, LogicLabel);
-        render_graph.add_node_edge(LogicLabel, sort_label.clone());
+        
     }
 
     fn finish(&self, app: &mut App) {

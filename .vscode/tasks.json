@@ -3,7 +3,7 @@
 	"tasks": [
 		{
 			"type": "shell",
-			"command": "cargo run --release",
+			"command": "cargo run",
 			"label": "re",
 			"group": "build",
 		},

@@ -42,11 +42,8 @@ fn clear(@builtin(global_invocation_id) invocation_id: vec3<u32>,@builtin(num_wo
 @compute @workgroup_size(16, 1, 1)
 fn render(@builtin(global_invocation_id) invocation_id: vec3<u32>) {
     let position = units[i32(invocation_id.x)].position+uniform_data.dimensions/2.;
-    var color : vec4<f32> = vec4f(0.0,0.0,1.0,1.0);
-    if(i32(invocation_id.x) > uniform_data.unit_count/2){
-        color = vec4f(1.0,0.0,0.0,1.0);
-    }
-    
+    let strength = f32(invocation_id.x)/f32(uniform_data.unit_count);
+    var color : vec4<f32> = vec4f(strength,strength,strength,strength);
 
     textureStore(texture, vec2<i32>(i32(position.x),i32(position.y)), color);
 }

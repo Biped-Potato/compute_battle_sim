@@ -175,14 +175,19 @@ impl render_graph::Node for RenderNode {
         let pipeline_cache = world.resource::<PipelineCache>();
         let pipeline = world.resource::<RenderingPipeline>();
 
-        let mut pass = render_context
-            .command_encoder()
-            .begin_compute_pass(&ComputePassDescriptor::default());
+        
 
         // select the pipeline based on the current state
         match self.state {
             RenderState::Loading => {}
             RenderState::Update => {
+                let mut pass = render_context
+                .command_encoder()
+                .begin_compute_pass(&ComputePassDescriptor{
+                    label : Some(&"Render Pass"),
+                    ..Default::default()
+                });
+
                 let clear_pipeline = pipeline_cache
                     .get_compute_pipeline(pipeline.clear_pipeline)
                     .unwrap();
@@ -198,6 +203,8 @@ impl render_graph::Node for RenderNode {
                 pass.set_pipeline(update_pipeline);
 
                 pass.dispatch_workgroups((COUNT as u32) / WORKGROUP_SIZE, 1, 1);
+                
+
             }
         }
 

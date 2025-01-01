@@ -55,9 +55,7 @@ impl render_graph::Node for SortNode {
 
         let render_device = world.resource::<RenderDevice>();
 
-        let mut pass = render_context
-            .command_encoder()
-            .begin_compute_pass(&ComputePassDescriptor::default());
+        
 
         let uniform_data = UniformData {
             dimensions: Vec2::new(0.,0.),
@@ -95,7 +93,12 @@ impl render_graph::Node for SortNode {
         match self.state {
             SortState::Loading => {}
             SortState::Update => {
-                
+                let mut pass = render_context
+                .command_encoder()
+                .begin_compute_pass(&ComputePassDescriptor{
+                    label : Some(("level ".to_owned()+self.level.to_string().as_str() + " step" + self.step.to_string().as_str()).as_str()),
+                    ..Default::default()
+                });
 
                 let sort_pipeline = pipeline_cache
                     .get_compute_pipeline(pipeline.sort_pipeline)
