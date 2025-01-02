@@ -115,10 +115,12 @@ fn setup(mut commands: Commands, mut images: ResMut<Assets<Image>>) {
             velocity: Vec2::new(0., 0.),
         });
     }
-    commands.insert_resource(SimulationUniforms {
-        render_texture: image,
-        units: units,
+    commands.insert_resource(SimulationUniforms{
+        render_texture : image,
+        units : units,
+        data : None,
     });
+
 }
 #[derive(Resource, Default, Deref)]
 pub struct UnitBuffer(Vec<Buffer>);
@@ -135,12 +137,14 @@ pub struct UniformData {
     pub level: i32,
     pub step: i32,
     pub grid_size: i32,
+    pub grid_width : i32,
+    pub grid_height : i32,
 }
-const GRID_SIZE: i32 = 15;
+const GRID_SIZE: i32 = 10;
 const HASH_SIZE: i32 = (SIZE.0 * SIZE.1) as i32 / (GRID_SIZE * GRID_SIZE);
 fn create_buffers(
-    simulation_uniforms: Res<SimulationUniforms>,
     render_device: Res<RenderDevice>,
+    mut simulation_uniforms: ResMut<SimulationUniforms>,
     mut unit_buffer: ResMut<UnitBuffer>,
     mut uniform_buffer: ResMut<SimulationUniformBuffer>,
     mut indices_buffer: ResMut<IndicesBuffer>,
@@ -156,15 +160,18 @@ fn create_buffers(
             contents: buffer.into_inner(),
         });
         unit_buffer.0.push(storage);
-
+        let width = (SIZE.0 as f32/GRID_SIZE as f32) as i32;
+        let height = (SIZE.1 as f32/GRID_SIZE as f32) as i32;
         let uniform_data = UniformData {
             dimensions: Vec2::new(SIZE.0 as f32, SIZE.1 as f32),
             unit_count: COUNT as i32,
             level: 1,
             step: 1,
-            grid_size: GRID_SIZE,
+            grid_size : GRID_SIZE,
+            grid_width : width,
+            grid_height : height,
         };
-
+        simulation_uniforms.data = Some(uniform_data.clone());
         let mut byte_buffer = Vec::new();
         let mut buffer = encase::StorageBuffer::new(&mut byte_buffer);
         buffer.write(&uniform_data).unwrap();
@@ -236,6 +243,7 @@ impl Plugin for SimulationComputePlugin {
 
 #[derive(Resource, Clone, ExtractResource)]
 pub struct SimulationUniforms {
-    render_texture: Handle<Image>,
-    units: Vec<Unit>,
+    data : Option<UniformData>,
+    render_texture : Handle<Image>,
+    units : Vec<Unit>,
 }

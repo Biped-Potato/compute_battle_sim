@@ -9,8 +9,7 @@ use bevy::render::{
 
 use crate::helpers::helpers::get_pipeline_states;
 use crate::{
-    IndicesBuffer, SimulationUniformBuffer, UniformData, UnitBuffer, COUNT, GRID_SIZE, SIZE,
-    WORKGROUP_SIZE,
+    IndicesBuffer, SimulationUniformBuffer, SimulationUniforms, UnitBuffer, COUNT, WORKGROUP_SIZE
 };
 const SHADER_ASSET_PATH: &str = "shaders/logic.wgsl";
 
@@ -192,7 +191,7 @@ impl render_graph::Node for LogicNode {
         let unit_buffer = world.resource::<UnitBuffer>();
         let indices_buffer = world.resource::<IndicesBuffer>();
         let render_device = world.resource::<RenderDevice>();
-
+        let simulation_data = world.resource::<SimulationUniforms>();
         // select the pipeline based on the current state
         match self.state {
             LogicState::Loading => {}
@@ -216,19 +215,14 @@ impl render_graph::Node for LogicNode {
                 drop(pass_1);
 
                 let num = COUNT.ilog(2) as i32;
-
                 for sort_pass in 1..=num {
                     let level = 2_i32.pow(sort_pass as u32);
                     for pass_exp in (1..=sort_pass).rev() {
                         let step = 2_i32.pow(pass_exp as u32);
-
-                        let uniform_data = UniformData {
-                            dimensions: Vec2::new(SIZE.0 as f32, SIZE.1 as f32),
-                            unit_count: COUNT as i32,
-                            level: level,
-                            step: step,
-                            grid_size: GRID_SIZE,
-                        };
+                        
+                        let mut uniform_data = simulation_data.data.clone().unwrap();
+                        uniform_data.level = level;
+                        uniform_data.step = step;
 
                         let mut byte_buffer = Vec::new();
                         let mut buffer = encase::StorageBuffer::new(&mut byte_buffer);
