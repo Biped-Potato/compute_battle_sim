@@ -34,7 +34,7 @@ const protected_range : f32 = 4.0;
 
 const max_speed = 1.2;
 
-const workgroup_s = 16;
+const workgroup_s = 32;
 
 
 const offsets = array(
@@ -74,13 +74,13 @@ fn hash_indices(@builtin(global_invocation_id) invocation_id: vec3<u32>){
     }
 }
 
-
 @compute @workgroup_size(workgroup_s, 1, 1)
 fn sort(@builtin(global_invocation_id) invocation_id: vec3<u32>){
 
     let idx_start = i32(invocation_id.x)*16;
 
     let half_step = uniform_data.step/2;
+
     for(var i = idx_start;i<idx_start+16;i++){
         let low = (i/half_step) * uniform_data.step + (i % half_step);
                 
@@ -92,6 +92,7 @@ fn sort(@builtin(global_invocation_id) invocation_id: vec3<u32>){
             direction,
         );
     }
+
 }
 
 
@@ -187,18 +188,19 @@ fn update(@builtin(global_invocation_id) invocation_id: vec3<u32>) {
     position += velocity;
 
     //clamp in bounds
-    if (position.x > uniform_data.dimensions.x/2.){
-        position.x -= uniform_data.dimensions.x;
-    }
-    if (position.x < -uniform_data.dimensions.x/2.){
-        position.x += uniform_data.dimensions.x;
-    }
-    if (position.y > uniform_data.dimensions.y/2.){
-        position.y -= uniform_data.dimensions.y;
-    }
-    if (position.y < -uniform_data.dimensions.y/2.){
-        position.y += uniform_data.dimensions.y;
-    }
+    // if (position.x > uniform_data.dimensions.x/2.){
+    //     position.x -= uniform_data.dimensions.x;
+    // }
+    // if (position.x < -uniform_data.dimensions.x/2.){
+    //     position.x += uniform_data.dimensions.x;
+    // }
+    // if (position.y > uniform_data.dimensions.y/2.){
+    //     position.y -= uniform_data.dimensions.y;
+    // }
+    // if (position.y < -uniform_data.dimensions.y/2.){
+    //     position.y += uniform_data.dimensions.y;
+    // }
+    
     units[index].position = position;
     units[index].velocity = velocity;
     

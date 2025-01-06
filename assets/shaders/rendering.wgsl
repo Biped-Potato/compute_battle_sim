@@ -19,29 +19,16 @@ var texture: texture_storage_2d<rgba8unorm, read_write>;
 @group(0) @binding(2)
 var<uniform> uniform_data : UniformData;
 
-fn hash(value: u32) -> u32 {
-    var state = value;
-    state = state ^ 2747636419u;
-    state = state * 2654435769u;
-    state = state ^ state >> 16u;
-    state = state * 2654435769u;
-    state = state ^ state >> 16u;
-    state = state * 2654435769u;
-    return state;
-}
+const workgroup_s = 32;
 
-fn randomFloat(value: u32) -> f32 {
-    return f32(hash(value)) / 4294967295.0;
-}
-
-@compute @workgroup_size(16, 16, 1)
+@compute @workgroup_size(workgroup_s, workgroup_s, 1)
 fn clear(@builtin(global_invocation_id) invocation_id: vec3<u32>,@builtin(num_workgroups) num_workgroups: vec3<u32>) {
     let location = vec2<i32>(i32(invocation_id.x), i32(invocation_id.y));
     textureStore(texture, location, vec4<f32>(0.0,0.0,0.0,0.0));
 }
 
 
-@compute @workgroup_size(16, 1, 1)
+@compute @workgroup_size(workgroup_s, 1, 1)
 fn render(@builtin(global_invocation_id) invocation_id: vec3<u32>) {
     let position = units[i32(invocation_id.x)].position+uniform_data.dimensions/2.;
     let strength = 1.0;
