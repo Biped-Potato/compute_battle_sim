@@ -121,9 +121,6 @@ fn update(@builtin(global_invocation_id) invocation_id: vec3<u32>) {
         let new_id = hash_id+dimensionalize(offsets[j]);
 
         let start_index = indices[new_id];
-        if (start_index == -1 || new_id < 0 || new_id > uniform_data.unit_count) {
-            continue;
-        }
         for(var i = i32(start_index); i < uniform_data.unit_count; i++) {
             
             if(new_id != units[i].hash_id){

@@ -39,16 +39,7 @@ fn clear(@builtin(global_invocation_id) invocation_id: vec3<u32>,@builtin(num_wo
 fn render(@builtin(global_invocation_id) invocation_id: vec3<u32>) {
     let original_pos = units[i32(invocation_id.x)].position;
     let position = (original_pos)/uniform_data.camera_zoom+uniform_data.dimensions/2.+ uniform_data.camera_position;
-    let strength = 1.0;
-    let seed = f32(units[i32(invocation_id.x)].hash_id);
-    let r = fract(sin(seed*12.012489)*1.1234);
-    let g = fract(cos(seed*1.193817)*3.08923971);
-    let b = fract(sin(seed*3.942812)*1.9831205);
-    var color : vec4<f32> = vec4f(r,g,b,strength);
-
-    if(abs(original_pos.x) > f32(uniform_data.grid_size) * f32(uniform_data.grid_width) * 0.5 || abs(original_pos.y) > f32(uniform_data.grid_size) * f32(uniform_data.grid_height) * 0.5) {
-        color = vec4f(1.0,0.0,0.0,1.0);
-    }
+    var color : vec4<f32> = vec4f(1.0,1.0,1.0,1.0);
     
     textureStore(texture, vec2<i32>(i32(position.x),i32(position.y)), color);
 }

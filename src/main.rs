@@ -31,7 +31,7 @@ pub mod unit;
 const DISPLAY_FACTOR: u32 = 1;
 const SIZE: (u32, u32) = (1920 / DISPLAY_FACTOR, 1088 / DISPLAY_FACTOR);
 const WORKGROUP_SIZE: u32 = 32;
-const SIZE_X: u32 = 245;
+const SIZE_X: u32 = 1000000;
 const SIZE_Y: u32 = 1;
 const COUNT: i32 = nearest_base(SIZE_X as i32 * SIZE_Y as i32, 2);
 fn main() {
