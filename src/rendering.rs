@@ -10,7 +10,7 @@ use bevy::render::{
 };
 
 use crate::helpers::helpers::get_pipeline_states;
-use crate::{SimulationUniformBuffer, SimulationUniforms, UnitBuffer, COUNT, SIZE, WORKGROUP_SIZE};
+use crate::{SimulationUniforms, UnitBuffer, COUNT, SIZE, WORKGROUP_SIZE};
 const SHADER_ASSET_PATH: &str = "shaders/rendering.wgsl";
 
 #[derive(PartialEq)]

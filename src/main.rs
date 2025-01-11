@@ -31,7 +31,7 @@ pub mod unit;
 const DISPLAY_FACTOR: u32 = 1;
 const SIZE: (u32, u32) = (1920 / DISPLAY_FACTOR, 1088 / DISPLAY_FACTOR);
 const WORKGROUP_SIZE: u32 = 32;
-const SIZE_X: u32 = 1000000;
+const SIZE_X: u32 = 200000;
 const SIZE_Y: u32 = 1;
 const COUNT: i32 = nearest_base(SIZE_X as i32 * SIZE_Y as i32, 2);
 fn main() {
@@ -117,8 +117,8 @@ fn setup(mut commands: Commands, mut images: ResMut<Assets<Image>>) {
             velocity: Vec2::new(rand.gen_range(-1.0..1.0), rand.gen_range(-1.0..1.0)).normalize(),
         });
     }
-    let width = (SIZE.0 as f32/GRID_SIZE as f32) as i32;
-    let height = (SIZE.1 as f32/GRID_SIZE as f32) as i32;
+    let width = (WORLD_SIZE.0 as f32/GRID_SIZE as f32) as i32;
+    let height = (WORLD_SIZE.1 as f32/GRID_SIZE as f32) as i32;
     let uniform_data = UniformData {
         dimensions: Vec2::new(SIZE.0 as f32, SIZE.1 as f32),
         unit_count: COUNT as i32,
@@ -159,11 +159,11 @@ pub struct UniformData {
     pub camera_position : Vec2,
 }
 const GRID_SIZE: i32 = 5;
-const WORLD_SIZE : (i32,i32) = (6400,6400);
+const WORLD_SIZE : (i32,i32) = (3200,3200);
 const HASH_SIZE: i32 = (WORLD_SIZE.0 * WORLD_SIZE.1) as i32 / (GRID_SIZE * GRID_SIZE);
 fn create_buffers(
     render_device: Res<RenderDevice>,
-    mut simulation_uniforms: ResMut<SimulationUniforms>,
+    simulation_uniforms: ResMut<SimulationUniforms>,
     mut unit_buffer: ResMut<UnitBuffer>,
     mut uniform_buffer: ResMut<SimulationUniformBuffer>,
     mut indices_buffer: ResMut<IndicesBuffer>,

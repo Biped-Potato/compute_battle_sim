@@ -37,9 +37,14 @@ fn clear(@builtin(global_invocation_id) invocation_id: vec3<u32>,@builtin(num_wo
 
 @compute @workgroup_size(workgroup_s, 1, 1)
 fn render(@builtin(global_invocation_id) invocation_id: vec3<u32>) {
-    let position = (units[i32(invocation_id.x)].position)/uniform_data.camera_zoom+uniform_data.dimensions/2.+ uniform_data.camera_position;
+    let original_pos = units[i32(invocation_id.x)].position;
+    let position = (original_pos)/uniform_data.camera_zoom+uniform_data.dimensions/2.+ uniform_data.camera_position;
     let strength = 1.0;
-    var color : vec4<f32> = vec4f(strength,strength,strength,strength);
+    var color : vec4<f32> = vec4f(f32(units[i32(invocation_id.x)].hash_id)/f32(uniform_data.grid_height*uniform_data.grid_width),strength,strength,strength);
 
+    if(abs(original_pos.x) > f32(uniform_data.grid_size) * f32(uniform_data.grid_width) * 0.5 || abs(original_pos.y) > f32(uniform_data.grid_size) * f32(uniform_data.grid_height) * 0.5) {
+        color = vec4f(1.0,0.0,0.0,1.0);
+    }
+    
     textureStore(texture, vec2<i32>(i32(position.x),i32(position.y)), color);
 }
