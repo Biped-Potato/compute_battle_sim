@@ -117,10 +117,24 @@ fn setup(mut commands: Commands, mut images: ResMut<Assets<Image>>) {
             velocity: Vec2::new(rand.gen_range(-1.0..1.0), rand.gen_range(-1.0..1.0)).normalize(),
         });
     }
+    let width = (SIZE.0 as f32/GRID_SIZE as f32) as i32;
+    let height = (SIZE.1 as f32/GRID_SIZE as f32) as i32;
+    let uniform_data = UniformData {
+        dimensions: Vec2::new(SIZE.0 as f32, SIZE.1 as f32),
+        unit_count: COUNT as i32,
+        level: 1,
+        step: 1,
+        grid_size : GRID_SIZE,
+        grid_width : width,
+        grid_height : height,
+        camera_zoom : 0.25,
+        camera_position : Vec2::ZERO,
+    };
+
     commands.insert_resource(SimulationUniforms{
         render_texture : image,
         units : units,
-        data : None,
+        data : Some(uniform_data),
     });
 
 }
@@ -165,23 +179,10 @@ fn create_buffers(
             contents: buffer.into_inner(),
         });
         unit_buffer.0.push(storage);
-        let width = (SIZE.0 as f32/GRID_SIZE as f32) as i32;
-        let height = (SIZE.1 as f32/GRID_SIZE as f32) as i32;
-        let uniform_data = UniformData {
-            dimensions: Vec2::new(SIZE.0 as f32, SIZE.1 as f32),
-            unit_count: COUNT as i32,
-            level: 1,
-            step: 1,
-            grid_size : GRID_SIZE,
-            grid_width : width,
-            grid_height : height,
-            camera_zoom : 0.25,
-            camera_position : Vec2::ZERO,
-        };
-        simulation_uniforms.data = Some(uniform_data.clone());
+
         let mut byte_buffer = Vec::new();
         let mut buffer = encase::StorageBuffer::new(&mut byte_buffer);
-        buffer.write(&uniform_data).unwrap();
+        buffer.write(&simulation_uniforms.data.clone().unwrap()).unwrap();
 
         let uniform = render_device.create_buffer_with_data(&BufferInitDescriptor {
             label: None,
@@ -248,9 +249,21 @@ impl Plugin for SimulationComputePlugin {
     }
 }
 
-#[derive(Resource, Clone, ExtractResource)]
+#[derive(Resource, Clone)]
 pub struct SimulationUniforms {
     data : Option<UniformData>,
     render_texture : Handle<Image>,
     units : Vec<Unit>,
+}
+
+impl ExtractResource for SimulationUniforms {
+    type Source = SimulationUniforms;
+
+    fn extract_resource(uniforms: &Self::Source) -> Self {
+        SimulationUniforms {
+            data : uniforms.data.clone(),
+            render_texture : uniforms.render_texture.clone(),
+            units : uniforms.units.clone(),
+        }
+    }
 }

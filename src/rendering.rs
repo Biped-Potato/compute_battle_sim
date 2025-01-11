@@ -40,10 +40,24 @@ pub fn prepare_bind_group(
     gpu_images: Res<RenderAssets<GpuImage>>,
     simulation_uniforms: Res<SimulationUniforms>,
     unit_buffer: Res<UnitBuffer>,
-    uniform_buffer: Res<SimulationUniformBuffer>,
+    //uniform_buffer: Res<SimulationUniformBuffer>,
     render_device: Res<RenderDevice>,
 ) {
     let render_texture = gpu_images.get(&simulation_uniforms.render_texture).unwrap();
+
+    let uniform_data = simulation_uniforms.data.clone().unwrap();
+    let mut byte_buffer = Vec::new();
+    let mut buffer = encase::StorageBuffer::new(&mut byte_buffer);
+    buffer.write(&uniform_data).unwrap();
+
+    let uniform =
+        render_device.create_buffer_with_data(&BufferInitDescriptor {
+            label: None,
+            usage: BufferUsages::COPY_DST
+                | BufferUsages::UNIFORM
+                | BufferUsages::COPY_SRC,
+            contents: buffer.into_inner(),
+        });
 
     let bind_group = render_device.create_bind_group(
         None,
@@ -59,7 +73,7 @@ pub fn prepare_bind_group(
             },
             BindGroupEntry {
                 binding: 2,
-                resource: BindingResource::Buffer(uniform_buffer.0[0].as_entire_buffer_binding()),
+                resource: BindingResource::Buffer(uniform.as_entire_buffer_binding()),
             },
         ],
     );

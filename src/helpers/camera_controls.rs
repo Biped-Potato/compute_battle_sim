@@ -3,8 +3,8 @@ use bevy::{input::mouse::{MouseScrollUnit, MouseWheel}, prelude::*};
 use crate::SimulationUniforms;
 
 
-const SCROLL_SPEED : f32 = 100.0;
-const MOVE_SPEED : f32 = 10.0;
+const SCROLL_SPEED : f32 = 0.1;
+const MOVE_SPEED : f32 = 100.0;
 pub struct CameraControlsPlugin;
 impl Plugin for CameraControlsPlugin {
     fn build(&self, app: &mut App) {
@@ -18,27 +18,30 @@ fn update_camera(
     mut uniform_data : ResMut<SimulationUniforms>,
 ){
     if uniform_data.data.is_some(){
+        let data = uniform_data.data.as_mut().unwrap();
         for ev in evr_scroll.read() {
             match ev.unit {
                 MouseScrollUnit::Line => {
-                    uniform_data.data.as_mut().unwrap().camera_zoom += SCROLL_SPEED * ev.y;
+                    data.camera_zoom -= SCROLL_SPEED * ev.y;
                 }
                 MouseScrollUnit::Pixel => {
-                    uniform_data.data.as_mut().unwrap().camera_zoom += SCROLL_SPEED * ev.y;
+                    data.camera_zoom -= SCROLL_SPEED * ev.y;
                 }
             }
         }
+        data.camera_zoom = f32::clamp(data.camera_zoom, 0.1,f32::MAX);
         if keys.pressed(KeyCode::KeyW) {
-            uniform_data.data.as_mut().unwrap().camera_position.y += MOVE_SPEED * time.delta_secs();
+            data.camera_position.y += MOVE_SPEED * time.delta_secs()*data.camera_zoom;
+            
         }
         if keys.pressed(KeyCode::KeyS) {
-            uniform_data.data.as_mut().unwrap().camera_position.y -= MOVE_SPEED * time.delta_secs();
+            data.camera_position.y -= MOVE_SPEED * time.delta_secs()*data.camera_zoom;
         }
         if keys.pressed(KeyCode::KeyD) {
-            uniform_data.data.as_mut().unwrap().camera_position.x += MOVE_SPEED * time.delta_secs();
+            data.camera_position.x -= MOVE_SPEED * time.delta_secs()*data.camera_zoom;
         }
         if keys.pressed(KeyCode::KeyA) {
-            uniform_data.data.as_mut().unwrap().camera_position.x -= MOVE_SPEED * time.delta_secs();
+            data.camera_position.x += MOVE_SPEED * time.delta_secs()*data.camera_zoom;
         }
     }
 }

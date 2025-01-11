@@ -138,18 +138,16 @@ fn update(@builtin(global_invocation_id) invocation_id: vec3<u32>) {
             }
             if (i != index){
                 let o_position = units[i].position;
-                let distance = position - o_position;
-                
-                if (length(distance) < protected_range){
-                    close_dx += distance.x;
-                    close_dy += distance.y;
+                let offset = position - o_position;
+                let dist = length(offset);
+                if (dist < protected_range){
+                    let norm = normalize(offset);
+                    let avoid = norm * avoid_factor * (protected_range/dist);
+                    velocity += avoid;
                 }
             }
         }
     }
-    //separation
-    velocity.x += avoid_factor * close_dx;
-    velocity.y += avoid_factor * close_dy;
 
     velocity = normalize(velocity) * clamp(length(velocity),-max_speed,max_speed);
     
