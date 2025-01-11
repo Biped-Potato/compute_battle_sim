@@ -29,12 +29,11 @@ var<uniform> uniform_data : UniformData;
 
 const targeting_factor : f32 = 0.01;
 
-const avoid_factor : f32 = 0.05;
+const avoid_factor : f32 = 0.2;
 
-const visible_range : f32 = 10.0;
-const protected_range : f32 = 4.0;
+const protected_range : f32 = 2.0;
 
-const max_speed = 0.5;
+const max_speed = 0.2;
 
 const workgroup_s = 32;
 
@@ -59,7 +58,6 @@ fn hash(@builtin(global_invocation_id) invocation_id: vec3<u32>){
     let index = i32(invocation_id.x); 
     units[index].hash_id = compute_hash_id(units[index].position);
 }
-
 @compute @workgroup_size(workgroup_s, 1, 1)
 fn hash_indices(@builtin(global_invocation_id) invocation_id: vec3<u32>){
     var prev_key : i32 = 0;
@@ -78,24 +76,16 @@ fn hash_indices(@builtin(global_invocation_id) invocation_id: vec3<u32>){
 
 @compute @workgroup_size(workgroup_s, 1, 1)
 fn sort(@builtin(global_invocation_id) invocation_id: vec3<u32>){
-
     let idx_start = i32(invocation_id.x);
-
     let half_step = uniform_data.step/2;
-
-    let low = (idx_start/half_step) * uniform_data.step + (idx_start % half_step);
-            
+    let low = (idx_start/half_step) * uniform_data.step + (idx_start % half_step);          
     let direction = ((low/uniform_data.level) + 1)%2;
-
     compare(
         u32(low),
         u32(low + half_step),
         direction,
     );
-
 }
-
-
 fn compare(a: u32, b: u32, direction: i32) {
     var e : i32 = 0;
     if (units[a].hash_id > units[b].hash_id){

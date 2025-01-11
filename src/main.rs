@@ -159,7 +159,7 @@ pub struct UniformData {
     pub camera_position : Vec2,
 }
 const GRID_SIZE: i32 = 5;
-const WORLD_SIZE : (i32,i32) = (3200,3200);
+const WORLD_SIZE : (i32,i32) = (1920*2,1080*2);
 const HASH_SIZE: (i32,i32) = (WORLD_SIZE.0/GRID_SIZE,WORLD_SIZE.1/GRID_SIZE);
 fn create_buffers(
     render_device: Res<RenderDevice>,
