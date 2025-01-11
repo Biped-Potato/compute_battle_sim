@@ -7,7 +7,7 @@ struct Unit {
 
 struct UniformData{
     dimensions : vec2<f32>,
-    unit_count : i32
+    unit_count : i32,
 }
 
 @group(0) @binding(0)

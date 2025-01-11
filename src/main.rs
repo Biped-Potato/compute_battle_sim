@@ -30,7 +30,7 @@ pub mod unit;
 const DISPLAY_FACTOR: u32 = 1;
 const SIZE: (u32, u32) = (1920 / DISPLAY_FACTOR, 1088 / DISPLAY_FACTOR);
 const WORKGROUP_SIZE: u32 = 32;
-const SIZE_X: u32 = 100000;
+const SIZE_X: u32 = 500000;
 const SIZE_Y: u32 = 1;
 const COUNT: i32 = nearest_base(SIZE_X as i32 * SIZE_Y as i32, 2);
 fn main() {
@@ -112,7 +112,7 @@ fn setup(mut commands: Commands, mut images: ResMut<Assets<Image>>) {
                 rand.gen_range(-((SIZE.0 / 2) as f32)..((SIZE.0 / 2) as f32)),
                 rand.gen_range(-((SIZE.1 / 2) as f32)..((SIZE.1 / 2) as f32)),
             ),
-            velocity: Vec2::new(0., 0.),
+            velocity: Vec2::new(rand.gen_range(-1.0..1.0), rand.gen_range(-1.0..1.0)).normalize(),
         });
     }
     commands.insert_resource(SimulationUniforms{
@@ -141,7 +141,8 @@ pub struct UniformData {
     pub grid_height : i32,
 }
 const GRID_SIZE: i32 = 10;
-const HASH_SIZE: i32 = (SIZE.0 * SIZE.1) as i32 / (GRID_SIZE * GRID_SIZE);
+const WORLD_SIZE : (i32,i32) = (3000,3000);
+const HASH_SIZE: i32 = (WORLD_SIZE.0 * WORLD_SIZE.1) as i32 / (GRID_SIZE * GRID_SIZE);
 fn create_buffers(
     render_device: Res<RenderDevice>,
     mut simulation_uniforms: ResMut<SimulationUniforms>,

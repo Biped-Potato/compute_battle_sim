@@ -23,16 +23,16 @@ var<storage, read_write> indices : array<u32>;
 @group(0) @binding(2)
 var<uniform> uniform_data : UniformData;
 
-const targeting_factor : f32 = 0.02;
+const targeting_factor : f32 = 0.05;
 
 const matching_factor : f32 = 0.05;
-const avoid_factor : f32 = 0.05;
+const avoid_factor : f32 = 0.1;
 const centering_factor : f32 = 0.05;
 
 const visible_range : f32 = 10.0;
 const protected_range : f32 = 4.0;
 
-const max_speed = 1.2;
+const max_speed = 2.0;
 
 const workgroup_s = 32;
 
@@ -77,21 +77,19 @@ fn hash_indices(@builtin(global_invocation_id) invocation_id: vec3<u32>){
 @compute @workgroup_size(workgroup_s, 1, 1)
 fn sort(@builtin(global_invocation_id) invocation_id: vec3<u32>){
 
-    let idx_start = i32(invocation_id.x)*16;
+    let idx_start = i32(invocation_id.x);
 
     let half_step = uniform_data.step/2;
 
-    for(var i = idx_start;i<idx_start+16;i++){
-        let low = (i/half_step) * uniform_data.step + (i % half_step);
-                
-        let direction = ((low/uniform_data.level) + 1)%2;
+    let low = (idx_start/half_step) * uniform_data.step + (idx_start % half_step);
+            
+    let direction = ((low/uniform_data.level) + 1)%2;
 
-        compare(
-            u32(low),
-            u32(low + half_step),
-            direction,
-        );
-    }
+    compare(
+        u32(low),
+        u32(low + half_step),
+        direction,
+    );
 
 }
 
@@ -132,7 +130,7 @@ fn update(@builtin(global_invocation_id) invocation_id: vec3<u32>) {
 
     
     for(var j = 0;j<9;j++){
-        let new_id = hash_id + dimensionalize(offsets[j]);
+        let new_id = hash_id+dimensionalize(offsets[j]);
 
         let start_index = indices[new_id];
         if (new_id < 0 || new_id > uniform_data.unit_count) {
