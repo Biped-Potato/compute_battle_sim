@@ -4,6 +4,7 @@ struct Unit {
     hash_id : i32,
 }
 
+
 struct UniformData{
     dimensions : vec2<f32>,
     unit_count : i32,
@@ -12,7 +13,10 @@ struct UniformData{
     grid_size : i32,
     grid_width : i32,
     grid_height : i32,
+    camera_zoom : f32,
+    camera_position : vec2<f32>,
 }
+
 
 @group(0) @binding(0)
 var<storage, read_write> units: array<Unit>;
@@ -23,16 +27,14 @@ var<storage, read_write> indices : array<u32>;
 @group(0) @binding(2)
 var<uniform> uniform_data : UniformData;
 
-const targeting_factor : f32 = 0.05;
+const targeting_factor : f32 = 0.01;
 
-const matching_factor : f32 = 0.05;
-const avoid_factor : f32 = 0.1;
-const centering_factor : f32 = 0.05;
+const avoid_factor : f32 = 0.05;
 
 const visible_range : f32 = 10.0;
 const protected_range : f32 = 4.0;
 
-const max_speed = 2.0;
+const max_speed = 0.5;
 
 const workgroup_s = 32;
 
@@ -117,15 +119,8 @@ fn update(@builtin(global_invocation_id) invocation_id: vec3<u32>) {
     //separation
     var close_dx : f32 = 0.0;
     var close_dy : f32 = 0.0;
-    //alignment
-    var x_vel_avg : f32 = 0.0;
-    var y_vel_avg : f32 = 0.0;
 
     var neighboring_boids : f32 = 0.0;
-
-    //cohesion
-    var x_pos_avg : f32 = 0.0;
-    var y_pos_avg : f32 = 0.0;
 
 
     
@@ -143,20 +138,11 @@ fn update(@builtin(global_invocation_id) invocation_id: vec3<u32>) {
             }
             if (i != index){
                 let o_position = units[i].position;
-                let o_velocity = units[i].velocity;
                 let distance = position - o_position;
                 
                 if (length(distance) < protected_range){
                     close_dx += distance.x;
                     close_dy += distance.y;
-                }
-                if (length(distance) < visible_range) {
-                    x_vel_avg += o_velocity.x;
-                    y_vel_avg += o_velocity.y;
-
-                    x_pos_avg += position.x;
-                    y_pos_avg += position.y;
-                    neighboring_boids += 1.0;
                 }
             }
         }
@@ -165,39 +151,9 @@ fn update(@builtin(global_invocation_id) invocation_id: vec3<u32>) {
     velocity.x += avoid_factor * close_dx;
     velocity.y += avoid_factor * close_dy;
 
-    if (neighboring_boids != 0){
-        x_pos_avg = x_pos_avg/neighboring_boids;
-        y_pos_avg = y_pos_avg/neighboring_boids;
-        x_vel_avg = x_vel_avg/neighboring_boids;
-        y_vel_avg = y_vel_avg/neighboring_boids;
-    }
-    
-
-    velocity.x += (x_vel_avg-velocity.x)*matching_factor;
-    velocity.y += (y_vel_avg-velocity.y)*matching_factor;
-    
-    velocity.x += (x_pos_avg - position.x)*centering_factor;
-    velocity.y += (y_pos_avg - position.y)*centering_factor;
-    
-    
-
     velocity = normalize(velocity) * clamp(length(velocity),-max_speed,max_speed);
     
     position += velocity;
-
-    //clamp in bounds
-    // if (position.x > uniform_data.dimensions.x/2.){
-    //     position.x -= uniform_data.dimensions.x;
-    // }
-    // if (position.x < -uniform_data.dimensions.x/2.){
-    //     position.x += uniform_data.dimensions.x;
-    // }
-    // if (position.y > uniform_data.dimensions.y/2.){
-    //     position.y -= uniform_data.dimensions.y;
-    // }
-    // if (position.y < -uniform_data.dimensions.y/2.){
-    //     position.y += uniform_data.dimensions.y;
-    // }
     
     units[index].position = position;
     units[index].velocity = velocity;

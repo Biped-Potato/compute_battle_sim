@@ -8,6 +8,13 @@ struct Unit {
 struct UniformData{
     dimensions : vec2<f32>,
     unit_count : i32,
+    level : i32,
+    step : i32,
+    grid_size : i32,
+    grid_width : i32,
+    grid_height : i32,
+    camera_zoom : f32,
+    camera_position : vec2<f32>,
 }
 
 @group(0) @binding(0)
@@ -30,7 +37,7 @@ fn clear(@builtin(global_invocation_id) invocation_id: vec3<u32>,@builtin(num_wo
 
 @compute @workgroup_size(workgroup_s, 1, 1)
 fn render(@builtin(global_invocation_id) invocation_id: vec3<u32>) {
-    let position = units[i32(invocation_id.x)].position+uniform_data.dimensions/2.;
+    let position = (units[i32(invocation_id.x)].position)*uniform_data.camera_zoom+uniform_data.dimensions/2.+ uniform_data.camera_position;
     let strength = 1.0;
     var color : vec4<f32> = vec4f(strength,strength,strength,strength);
 

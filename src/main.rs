@@ -15,6 +15,7 @@ use bevy::{
     },
 };
 use extra::fps_counter::FPSTextPlugin;
+use helpers::camera_controls::CameraControlsPlugin;
 use logic::{LogicNode, LogicPipeline};
 use rendering::{RenderNode, RenderingPipeline};
 
@@ -30,7 +31,7 @@ pub mod unit;
 const DISPLAY_FACTOR: u32 = 1;
 const SIZE: (u32, u32) = (1920 / DISPLAY_FACTOR, 1088 / DISPLAY_FACTOR);
 const WORKGROUP_SIZE: u32 = 32;
-const SIZE_X: u32 = 500000;
+const SIZE_X: u32 = 1000000;
 const SIZE_Y: u32 = 1;
 const COUNT: i32 = nearest_base(SIZE_X as i32 * SIZE_Y as i32, 2);
 fn main() {
@@ -57,6 +58,7 @@ fn main() {
                 .set(ImagePlugin::default_nearest()),
             SimulationComputePlugin,
             FPSTextPlugin,
+            CameraControlsPlugin
         ))
         .add_systems(Update, exit_on_esc)
         .add_systems(Startup, setup)
@@ -65,7 +67,7 @@ fn main() {
 }
 const fn nearest_base(input: i32, base: i32) -> i32 {
     let num = 2_i32.pow(base as u32);
-    if input > num {
+    if input > num || num % (WORKGROUP_SIZE as i32*2) != 0{
         return nearest_base(input, base + 1);
     }
     return num;
@@ -109,8 +111,8 @@ fn setup(mut commands: Commands, mut images: ResMut<Assets<Image>>) {
             hash_id: -1,
             start_index: -1,
             position: Vec2::new(
-                rand.gen_range(-((SIZE.0 / 2) as f32)..((SIZE.0 / 2) as f32)),
-                rand.gen_range(-((SIZE.1 / 2) as f32)..((SIZE.1 / 2) as f32)),
+                rand.gen_range(-((WORLD_SIZE.0 / 2) as f32)..((WORLD_SIZE.0 / 2) as f32)),
+                rand.gen_range(-((WORLD_SIZE.1 / 2) as f32)..((WORLD_SIZE.1 / 2) as f32)),
             ),
             velocity: Vec2::new(rand.gen_range(-1.0..1.0), rand.gen_range(-1.0..1.0)).normalize(),
         });
@@ -139,9 +141,11 @@ pub struct UniformData {
     pub grid_size: i32,
     pub grid_width : i32,
     pub grid_height : i32,
+    pub camera_zoom : f32,
+    pub camera_position : Vec2,
 }
-const GRID_SIZE: i32 = 10;
-const WORLD_SIZE : (i32,i32) = (3000,3000);
+const GRID_SIZE: i32 = 5;
+const WORLD_SIZE : (i32,i32) = (6400,6400);
 const HASH_SIZE: i32 = (WORLD_SIZE.0 * WORLD_SIZE.1) as i32 / (GRID_SIZE * GRID_SIZE);
 fn create_buffers(
     render_device: Res<RenderDevice>,
@@ -171,6 +175,8 @@ fn create_buffers(
             grid_size : GRID_SIZE,
             grid_width : width,
             grid_height : height,
+            camera_zoom : 0.25,
+            camera_position : Vec2::ZERO,
         };
         simulation_uniforms.data = Some(uniform_data.clone());
         let mut byte_buffer = Vec::new();

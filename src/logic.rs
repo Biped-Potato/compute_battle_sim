@@ -42,6 +42,7 @@ pub fn prepare_bind_group(
     indices_buffer: Res<IndicesBuffer>,
     render_device: Res<RenderDevice>,
 ) {
+    
     let bind_group = render_device.create_bind_group(
         None,
         &pipeline.texture_bind_group_layout,
