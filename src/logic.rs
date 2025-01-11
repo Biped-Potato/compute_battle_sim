@@ -284,6 +284,8 @@ impl render_graph::Node for LogicNode {
                         pass.set_pipeline(sort_pipeline);
 
                         pass.dispatch_workgroups((COUNT as u32) / (2 * WORKGROUP_SIZE), 1, 1);
+
+                        drop(pass);
                     }
                 }
                 let mut pass_2 =
@@ -319,6 +321,8 @@ impl render_graph::Node for LogicNode {
                 pass.set_pipeline(update_pipeline);
 
                 pass.dispatch_workgroups((COUNT as u32) / WORKGROUP_SIZE, 1, 1);
+
+                drop(pass);
             }
         }
 

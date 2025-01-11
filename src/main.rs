@@ -31,7 +31,7 @@ pub mod unit;
 const DISPLAY_FACTOR: u32 = 1;
 const SIZE: (u32, u32) = (1920 / DISPLAY_FACTOR, 1088 / DISPLAY_FACTOR);
 const WORKGROUP_SIZE: u32 = 32;
-const SIZE_X: u32 = 200000;
+const SIZE_X: u32 = 245;
 const SIZE_Y: u32 = 1;
 const COUNT: i32 = nearest_base(SIZE_X as i32 * SIZE_Y as i32, 2);
 fn main() {
@@ -67,7 +67,7 @@ fn main() {
 }
 const fn nearest_base(input: i32, base: i32) -> i32 {
     let num = 2_i32.pow(base as u32);
-    if input > num || num % (WORKGROUP_SIZE as i32*2) != 0{
+    if input > num || num % (WORKGROUP_SIZE as i32) != 0{
         return nearest_base(input, base + 1);
     }
     return num;
@@ -160,7 +160,7 @@ pub struct UniformData {
 }
 const GRID_SIZE: i32 = 5;
 const WORLD_SIZE : (i32,i32) = (3200,3200);
-const HASH_SIZE: i32 = (WORLD_SIZE.0 * WORLD_SIZE.1) as i32 / (GRID_SIZE * GRID_SIZE);
+const HASH_SIZE: (i32,i32) = (WORLD_SIZE.0/GRID_SIZE,WORLD_SIZE.1/GRID_SIZE);
 fn create_buffers(
     render_device: Res<RenderDevice>,
     simulation_uniforms: ResMut<SimulationUniforms>,
@@ -194,7 +194,7 @@ fn create_buffers(
         let mut byte_buffer = Vec::new();
         let mut buffer = encase::StorageBuffer::new(&mut byte_buffer);
 
-        buffer.write(&vec![-1; HASH_SIZE as usize]).unwrap();
+        buffer.write(&vec![-1; (HASH_SIZE.0 * HASH_SIZE.1) as usize]).unwrap();
 
         let storage = render_device.create_buffer_with_data(&BufferInitDescriptor {
             label: None,

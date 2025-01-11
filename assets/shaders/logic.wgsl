@@ -22,7 +22,7 @@ struct UniformData{
 var<storage, read_write> units: array<Unit>;
 
 @group(0) @binding(1)
-var<storage, read_write> indices : array<u32>;
+var<storage, read_write> indices : array<i32>;
 
 @group(0) @binding(2)
 var<uniform> uniform_data : UniformData;
@@ -63,7 +63,7 @@ fn hash(@builtin(global_invocation_id) invocation_id: vec3<u32>){
 @compute @workgroup_size(workgroup_s, 1, 1)
 fn hash_indices(@builtin(global_invocation_id) invocation_id: vec3<u32>){
     var prev_key : i32 = 0;
-    let index = u32(invocation_id.x);
+    let index = i32(invocation_id.x);
     let key = units[index].hash_id;
     if (index == 0){
         prev_key = -1;
@@ -114,29 +114,23 @@ fn update(@builtin(global_invocation_id) invocation_id: vec3<u32>) {
     var velocity : vec2<f32> = units[index].velocity;
     let hash_id = units[index].hash_id;
 
-    //targeting
     velocity += normalize(vec2<f32>(0.0,0.0)-position)*targeting_factor;
-    //separation
-    var close_dx : f32 = 0.0;
-    var close_dy : f32 = 0.0;
 
-    var neighboring_boids : f32 = 0.0;
-
-
-    
     for(var j = 0;j<9;j++){
+        
         let new_id = hash_id+dimensionalize(offsets[j]);
 
         let start_index = indices[new_id];
-        if (new_id < 0 || new_id > uniform_data.unit_count) {
+        if (start_index == -1 || new_id < 0 || new_id > uniform_data.unit_count) {
             continue;
         }
         for(var i = i32(start_index); i < uniform_data.unit_count; i++) {
-
+            
             if(new_id != units[i].hash_id){
                 break;
             }
             if (i != index){
+                
                 let o_position = units[i].position;
                 let offset = position - o_position;
                 let dist = length(offset);
@@ -152,7 +146,8 @@ fn update(@builtin(global_invocation_id) invocation_id: vec3<u32>) {
     velocity = normalize(velocity) * clamp(length(velocity),-max_speed,max_speed);
     
     position += velocity;
-    
+
+
     units[index].position = position;
     units[index].velocity = velocity;
     
