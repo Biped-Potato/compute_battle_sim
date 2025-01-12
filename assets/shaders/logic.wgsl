@@ -34,7 +34,7 @@ var<uniform> uniform_data : UniformData;
 
 const targeting_factor : f32 = 0.5;
 
-const avoid_factor : f32 = 0.5;
+const avoid_factor : f32 = 2.0;
 
 const protected_range : f32 = 4.0;
 
