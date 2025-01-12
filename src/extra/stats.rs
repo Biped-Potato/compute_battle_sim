@@ -28,7 +28,7 @@ fn setup(mut commands: Commands) {
                 left: Val::Percent(1.),
                 top: Val::Percent(1.),
                 bottom: Val::Auto,
-                right : Val::Auto,
+                right: Val::Auto,
                 padding: UiRect::all(Val::Px(4.0)),
                 // justify_content: JustifyContent::FlexStart,
                 // flex_direction : FlexDirection::Column,

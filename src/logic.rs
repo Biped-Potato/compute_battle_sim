@@ -43,8 +43,8 @@ pub fn prepare_bind_group(
     uniform_buffer: Res<SimulationUniformBuffer>,
     indices_buffer: Res<IndicesBuffer>,
     render_device: Res<RenderDevice>,
-    time : Res<Time>,
-    mut fixed : ResMut<FixedTimestep>,
+    time: Res<Time>,
+    mut fixed: ResMut<FixedTimestep>,
 ) {
     //timestep code
     while fixed.accumulater >= fixed.timestep {
@@ -63,8 +63,8 @@ pub fn prepare_bind_group(
     while accumulator >= fixed.timestep {
         accumulator -= fixed.timestep;
     }
-    fixed.alpha = accumulator/fixed.timestep;
-    
+    fixed.alpha = accumulator / fixed.timestep;
+
     let bind_group = render_device.create_bind_group(
         None,
         &pipeline.texture_bind_group_layout,
@@ -185,7 +185,6 @@ impl FromWorld for LogicPipeline {
 
 impl render_graph::Node for LogicNode {
     fn update(&mut self, world: &mut World) {
-        
         let pipeline = world.resource::<LogicPipeline>();
         let pipeline_cache = world.resource::<PipelineCache>();
 
@@ -219,26 +218,39 @@ impl render_graph::Node for LogicNode {
         let fixed = world.resource::<FixedTimestep>();
         let mut accumulater = fixed.accumulater;
         while accumulater >= fixed.timestep {
-            self.logic_update(render_context,bind_group,pipeline_cache,pipeline,unit_buffer,indices_buffer, render_device,simulation_data);
+            self.logic_update(
+                render_context,
+                bind_group,
+                pipeline_cache,
+                pipeline,
+                unit_buffer,
+                indices_buffer,
+                render_device,
+                simulation_data,
+            );
             accumulater -= fixed.timestep;
         }
-        
 
         Ok(())
     }
 }
 
 impl LogicNode {
-    fn logic_update(&self,render_context : &mut RenderContext,bind_group : &BindGroup, pipeline_cache : &PipelineCache,
-        pipeline : &LogicPipeline,unit_buffer : &UnitBuffer, indices_buffer : &IndicesBuffer, render_device : &RenderDevice, simulation_data : &SimulationUniforms){
+    fn logic_update(
+        &self,
+        render_context: &mut RenderContext,
+        bind_group: &BindGroup,
+        pipeline_cache: &PipelineCache,
+        pipeline: &LogicPipeline,
+        unit_buffer: &UnitBuffer,
+        indices_buffer: &IndicesBuffer,
+        render_device: &RenderDevice,
+        simulation_data: &SimulationUniforms,
+    ) {
         // select the pipeline based on the current state
         match self.state {
-            LogicState::Loading => {
-    
-            }
-            LogicState::Interpolate => {
-    
-            }
+            LogicState::Loading => {}
+            LogicState::Interpolate => {}
             LogicState::Update => {
                 let mut pass_1 =
                     render_context
@@ -247,31 +259,31 @@ impl LogicNode {
                             label: Some(&"hash"),
                             ..Default::default()
                         });
-    
+
                 let hash_pipeline = pipeline_cache
                     .get_compute_pipeline(pipeline.hash_pipeline)
                     .unwrap();
                 pass_1.set_bind_group(0, bind_group, &[]);
                 pass_1.set_pipeline(hash_pipeline);
-    
+
                 pass_1.dispatch_workgroups((COUNT as u32) / WORKGROUP_SIZE, 1, 1);
-    
+
                 drop(pass_1);
-    
+
                 let num = COUNT.ilog(2) as i32;
                 for sort_pass in 1..=num {
                     let level = 2_i32.pow(sort_pass as u32);
                     for pass_exp in (1..=sort_pass).rev() {
                         let step = 2_i32.pow(pass_exp as u32);
-    
+
                         let mut uniform_data = simulation_data.data.clone().unwrap();
                         uniform_data.level = level;
                         uniform_data.step = step;
-    
+
                         let mut byte_buffer = Vec::new();
                         let mut buffer = encase::StorageBuffer::new(&mut byte_buffer);
                         buffer.write(&uniform_data).unwrap();
-    
+
                         let uniform =
                             render_device.create_buffer_with_data(&BufferInitDescriptor {
                                 label: None,
@@ -280,7 +292,7 @@ impl LogicNode {
                                     | BufferUsages::COPY_SRC,
                                 contents: buffer.into_inner(),
                             });
-    
+
                         let bind_group = render_device.create_bind_group(
                             None,
                             &pipeline.texture_bind_group_layout,
@@ -305,7 +317,7 @@ impl LogicNode {
                                 },
                             ],
                         );
-    
+
                         let mut pass = render_context.command_encoder().begin_compute_pass(
                             &ComputePassDescriptor {
                                 label: Some(
@@ -318,16 +330,16 @@ impl LogicNode {
                                 ..Default::default()
                             },
                         );
-    
+
                         let sort_pipeline = pipeline_cache
                             .get_compute_pipeline(pipeline.sort_pipeline)
                             .unwrap();
-    
+
                         pass.set_bind_group(0, &bind_group, &[]);
                         pass.set_pipeline(sort_pipeline);
-    
+
                         pass.dispatch_workgroups((COUNT as u32) / (2 * WORKGROUP_SIZE), 1, 1);
-    
+
                         drop(pass);
                     }
                 }
@@ -338,17 +350,17 @@ impl LogicNode {
                             label: Some(&"hash"),
                             ..Default::default()
                         });
-    
+
                 let hash_id_pipeline = pipeline_cache
                     .get_compute_pipeline(pipeline.hash_indices_pipeline)
                     .unwrap();
                 pass_2.set_bind_group(0, bind_group, &[]);
                 pass_2.set_pipeline(hash_id_pipeline);
-    
+
                 pass_2.dispatch_workgroups((COUNT as u32) / WORKGROUP_SIZE, 1, 1);
-    
+
                 drop(pass_2);
-    
+
                 let mut pass =
                     render_context
                         .command_encoder()
@@ -356,15 +368,15 @@ impl LogicNode {
                             label: Some(&"update"),
                             ..Default::default()
                         });
-    
+
                 let update_pipeline = pipeline_cache
                     .get_compute_pipeline(pipeline.update_pipeline)
                     .unwrap();
                 pass.set_bind_group(0, bind_group, &[]);
                 pass.set_pipeline(update_pipeline);
-    
+
                 pass.dispatch_workgroups((COUNT as u32) / WORKGROUP_SIZE, 1, 1);
-    
+
                 drop(pass);
             }
         }

@@ -3,6 +3,8 @@ struct Unit {
     current_state : vec2<f32>,
     velocity : vec2<f32>,
     hash_id : i32,
+    attack_id : i32,
+    id : i32,
 }
 
 struct UniformData{
@@ -42,7 +44,9 @@ fn render(@builtin(global_invocation_id) invocation_id: vec3<u32>) {
     let previous_state = units[i32(invocation_id.x)].previous_state;
     let pos = current_state * uniform_data.alpha + previous_state * (1.0 - uniform_data.alpha);
     let screen_position = (pos+uniform_data.camera_position)/uniform_data.camera_zoom + uniform_data.dimensions/2.;
-    var color : vec4<f32> = vec4f(1.0,1.0,1.0,1.0);
-    
+    var color : vec4<f32> = vec4f(1.0,0.0,0.0,1.0);
+    if (units[i32(invocation_id.x)].id >= uniform_data.unit_count/2) {
+        color = vec4f(0.0,0.0,1.0,1.0);
+    }
     textureStore(texture, vec2<i32>(i32(screen_position.x),i32(screen_position.y)), color);
 }

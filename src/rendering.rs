@@ -41,7 +41,7 @@ pub fn prepare_bind_group(
     gpu_images: Res<RenderAssets<GpuImage>>,
     simulation_uniforms: Res<SimulationUniforms>,
     unit_buffer: Res<UnitBuffer>,
-    fixed : Res<FixedTimestep>,
+    fixed: Res<FixedTimestep>,
     //uniform_buffer: Res<SimulationUniformBuffer>,
     render_device: Res<RenderDevice>,
 ) {
