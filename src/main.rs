@@ -34,7 +34,7 @@ pub mod unit;
 const DISPLAY_FACTOR: u32 = 1;
 const SIZE: (u32, u32) = (1920 / DISPLAY_FACTOR, 1088 / DISPLAY_FACTOR);
 const WORKGROUP_SIZE: u32 = 256;
-const SIZE_X: u32 = 100000;
+const SIZE_X: u32 = 1000000;
 const SIZE_Y: u32 = 1;
 const COUNT: i32 = nearest_base(SIZE_X as i32 * SIZE_Y as i32, 2);
 const GRID_SIZE: i32 = 5;
@@ -115,14 +115,14 @@ fn setup(mut commands: Commands, mut images: ResMut<Assets<Image>>) {
     println!("{}", COUNT);
     for i in 0..COUNT {
         let mut position = Vec2::new(
-            rand.gen_range(-(WORLD_SIZE.0 as f32 * 0.47)..(-50.0)),
-            rand.gen_range(-((WORLD_SIZE.1 / 2) as f32)..((WORLD_SIZE.1 / 2) as f32)),
+            rand.gen_range(-(WORLD_SIZE.0 as f32 * 0.47)..(-20.0)),
+            rand.gen_range(-((WORLD_SIZE.1 / 2) as f32)..((WORLD_SIZE.1 / 2) as f32)) * 0.47 * 2.0,
         );
 
         if i > COUNT / 2 {
             position = Vec2::new(
-                rand.gen_range((50.0)..(WORLD_SIZE.0 as f32 * 0.47)),
-                rand.gen_range(-((WORLD_SIZE.1 / 2) as f32)..((WORLD_SIZE.1 / 2) as f32)),
+                rand.gen_range((20.0)..(WORLD_SIZE.0 as f32 * 0.47)),
+                rand.gen_range(-((WORLD_SIZE.1 / 2) as f32)..((WORLD_SIZE.1 / 2) as f32)) * 0.47 * 2.0,
             );
         }
         units.push(Unit {
@@ -130,8 +130,9 @@ fn setup(mut commands: Commands, mut images: ResMut<Assets<Image>>) {
             attack_id: -1,
             previous_state: position,
             current_state: position,
-            velocity: Vec2::new(rand.gen_range(-1.0..1.0), rand.gen_range(-1.0..1.0)).normalize(),
+            velocity: Vec2::ZERO,
             id: i,
+            health : 4,
         });
     }
     let width = (WORLD_SIZE.0 as f32 / GRID_SIZE as f32) as i32;

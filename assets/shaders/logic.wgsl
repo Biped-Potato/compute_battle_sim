@@ -5,6 +5,7 @@ struct Unit {
     hash_id : i32,
     attack_id : i32,
     id : i32,
+    health : i32,
 }
 
 
@@ -31,7 +32,7 @@ var<storage, read_write> indices : array<i32>;
 @group(0) @binding(2)
 var<uniform> uniform_data : UniformData;
 
-const targeting_factor : f32 = 0.2;
+const targeting_factor : f32 = 0.5;
 
 const avoid_factor : f32 = 0.5;
 
@@ -43,7 +44,9 @@ const workgroup_s = 256;
 
 const war_zone : f32 = 5.0;
 
-const attack_range : f32 = 10.0;
+const attack_range : f32 = 20.0;
+
+const kill_range : f32 = 4.0;
 
 const offsets = array(
     vec2<i32>(-1, 1), vec2<i32>(0, 1), vec2<i32>(1, 1),
@@ -62,8 +65,13 @@ fn compute_hash_id(position : vec2<f32>) -> i32{
 
 @compute @workgroup_size(workgroup_s, 1, 1)
 fn hash(@builtin(global_invocation_id) invocation_id: vec3<u32>){
-    let index = i32(invocation_id.x); 
-    units[index].hash_id = compute_hash_id(units[index].current_state);
+    let index = i32(invocation_id.x);
+    if(units[index].id == -1) {
+        units[index].hash_id = -100;
+    } 
+    else {
+        units[index].hash_id = compute_hash_id(units[index].current_state);
+    }
 }
 @compute @workgroup_size(workgroup_s, 1, 1)
 fn hash_indices(@builtin(global_invocation_id) invocation_id: vec3<u32>){
@@ -115,6 +123,10 @@ fn get_side(id : i32) -> i32{
 @compute @workgroup_size(workgroup_s, 1, 1)
 fn update(@builtin(global_invocation_id) invocation_id: vec3<u32>) {
     let index = i32(invocation_id.x); 
+    if(units[index].health <= 0){
+        units[index].id = -1;
+        return;
+    }
     var current_state : vec2<f32> = units[index].current_state;
     units[index].previous_state = current_state;
     var velocity : vec2<f32> = units[index].velocity;
@@ -168,6 +180,9 @@ fn update(@builtin(global_invocation_id) invocation_id: vec3<u32>) {
     if (new_attack_id != -1) {
         units[enemy_index].attack_id = id;
         velocity += normalize(units[enemy_index].current_state-current_state)*targeting_factor;
+        if(length(units[enemy_index].current_state - current_state) < kill_range) {
+            units[enemy_index].health -= 1;
+        }
     }
     else if (abs(current_state.x) < war_zone || abs(current_state.x) > f32(uniform_data.grid_width * uniform_data.grid_size)* 0.45) {
         velocity += normalize(vec2<f32>(0.0,0.0)-current_state)*targeting_factor;
