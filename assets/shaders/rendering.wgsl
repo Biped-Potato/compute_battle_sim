@@ -38,7 +38,7 @@ fn clear(@builtin(global_invocation_id) invocation_id: vec3<u32>,@builtin(num_wo
 @compute @workgroup_size(workgroup_s, 1, 1)
 fn render(@builtin(global_invocation_id) invocation_id: vec3<u32>) {
     let original_pos = units[i32(invocation_id.x)].position;
-    let position = (original_pos)/uniform_data.camera_zoom+uniform_data.dimensions/2.+ uniform_data.camera_position;
+    let position = (original_pos+uniform_data.camera_position)/uniform_data.camera_zoom + uniform_data.dimensions/2.;
     var color : vec4<f32> = vec4f(1.0,1.0,1.0,1.0);
     
     textureStore(texture, vec2<i32>(i32(position.x),i32(position.y)), color);

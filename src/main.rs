@@ -14,13 +14,14 @@ use bevy::{
         Render, RenderApp, RenderSet,
     },
 };
-use extra::fps_counter::FPSTextPlugin;
+use extra::stats::StatsPlugin;
 use helpers::camera_controls::CameraControlsPlugin;
 use logic::{LogicNode, LogicPipeline};
 use rendering::{RenderNode, RenderingPipeline};
 
 use rand::{thread_rng, Rng};
 
+use timestep::fixed_time::FixedTimestep;
 use unit::Unit;
 
 pub mod extra;
@@ -28,6 +29,8 @@ pub mod helpers;
 pub mod logic;
 pub mod rendering;
 pub mod unit;
+pub mod timestep;
+
 const DISPLAY_FACTOR: u32 = 1;
 const SIZE: (u32, u32) = (1920 / DISPLAY_FACTOR, 1088 / DISPLAY_FACTOR);
 const WORKGROUP_SIZE: u32 = 32;
@@ -57,8 +60,8 @@ fn main() {
                 })
                 .set(ImagePlugin::default_nearest()),
             SimulationComputePlugin,
-            FPSTextPlugin,
-            CameraControlsPlugin
+            StatsPlugin,
+            CameraControlsPlugin,
         ))
         .add_systems(Update, exit_on_esc)
         .add_systems(Startup, setup)
@@ -67,7 +70,7 @@ fn main() {
 }
 const fn nearest_base(input: i32, base: i32) -> i32 {
     let num = 2_i32.pow(base as u32);
-    if input > num || num % (WORKGROUP_SIZE as i32) != 0{
+    if input > num || num % (WORKGROUP_SIZE as i32) != 0 {
         return nearest_base(input, base + 1);
     }
     return num;
@@ -117,26 +120,25 @@ fn setup(mut commands: Commands, mut images: ResMut<Assets<Image>>) {
             velocity: Vec2::new(rand.gen_range(-1.0..1.0), rand.gen_range(-1.0..1.0)).normalize(),
         });
     }
-    let width = (WORLD_SIZE.0 as f32/GRID_SIZE as f32) as i32;
-    let height = (WORLD_SIZE.1 as f32/GRID_SIZE as f32) as i32;
+    let width = (WORLD_SIZE.0 as f32 / GRID_SIZE as f32) as i32;
+    let height = (WORLD_SIZE.1 as f32 / GRID_SIZE as f32) as i32;
     let uniform_data = UniformData {
         dimensions: Vec2::new(SIZE.0 as f32, SIZE.1 as f32),
         unit_count: COUNT as i32,
         level: 1,
         step: 1,
-        grid_size : GRID_SIZE,
-        grid_width : width,
-        grid_height : height,
-        camera_zoom : 0.25,
-        camera_position : Vec2::ZERO,
+        grid_size: GRID_SIZE,
+        grid_width: width,
+        grid_height: height,
+        camera_zoom: 0.25,
+        camera_position: Vec2::ZERO,
     };
 
-    commands.insert_resource(SimulationUniforms{
-        render_texture : image,
-        units : units,
-        data : Some(uniform_data),
+    commands.insert_resource(SimulationUniforms {
+        render_texture: image,
+        units: units,
+        data: Some(uniform_data),
     });
-
 }
 #[derive(Resource, Default, Deref)]
 pub struct UnitBuffer(Vec<Buffer>);
@@ -153,14 +155,14 @@ pub struct UniformData {
     pub level: i32,
     pub step: i32,
     pub grid_size: i32,
-    pub grid_width : i32,
-    pub grid_height : i32,
-    pub camera_zoom : f32,
-    pub camera_position : Vec2,
+    pub grid_width: i32,
+    pub grid_height: i32,
+    pub camera_zoom: f32,
+    pub camera_position: Vec2,
 }
 const GRID_SIZE: i32 = 5;
-const WORLD_SIZE : (i32,i32) = (1920*2,1080*2);
-const HASH_SIZE: (i32,i32) = (WORLD_SIZE.0/GRID_SIZE,WORLD_SIZE.1/GRID_SIZE);
+const WORLD_SIZE: (i32, i32) = (1920 * 2, 1080 * 2);
+const HASH_SIZE: (i32, i32) = (WORLD_SIZE.0 / GRID_SIZE, WORLD_SIZE.1 / GRID_SIZE);
 fn create_buffers(
     render_device: Res<RenderDevice>,
     simulation_uniforms: ResMut<SimulationUniforms>,
@@ -182,7 +184,9 @@ fn create_buffers(
 
         let mut byte_buffer = Vec::new();
         let mut buffer = encase::StorageBuffer::new(&mut byte_buffer);
-        buffer.write(&simulation_uniforms.data.clone().unwrap()).unwrap();
+        buffer
+            .write(&simulation_uniforms.data.clone().unwrap())
+            .unwrap();
 
         let uniform = render_device.create_buffer_with_data(&BufferInitDescriptor {
             label: None,
@@ -194,7 +198,9 @@ fn create_buffers(
         let mut byte_buffer = Vec::new();
         let mut buffer = encase::StorageBuffer::new(&mut byte_buffer);
 
-        buffer.write(&vec![-1; (HASH_SIZE.0 * HASH_SIZE.1) as usize]).unwrap();
+        buffer
+            .write(&vec![-1; (HASH_SIZE.0 * HASH_SIZE.1) as usize])
+            .unwrap();
 
         let storage = render_device.create_buffer_with_data(&BufferInitDescriptor {
             label: None,
@@ -232,7 +238,8 @@ impl Plugin for SimulationComputePlugin {
         render_app.init_resource::<UnitBuffer>();
         render_app.init_resource::<SimulationUniformBuffer>();
         render_app.init_resource::<IndicesBuffer>();
-
+        render_app.init_resource::<FixedTimestep>();
+        
         let mut render_graph = render_app.world_mut().resource_mut::<RenderGraph>();
 
         render_graph.add_node(LogicLabel, LogicNode::default());
@@ -251,9 +258,9 @@ impl Plugin for SimulationComputePlugin {
 
 #[derive(Resource, Clone)]
 pub struct SimulationUniforms {
-    data : Option<UniformData>,
-    render_texture : Handle<Image>,
-    units : Vec<Unit>,
+    data: Option<UniformData>,
+    render_texture: Handle<Image>,
+    units: Vec<Unit>,
 }
 
 impl ExtractResource for SimulationUniforms {
@@ -261,9 +268,9 @@ impl ExtractResource for SimulationUniforms {
 
     fn extract_resource(uniforms: &Self::Source) -> Self {
         SimulationUniforms {
-            data : uniforms.data.clone(),
-            render_texture : uniforms.render_texture.clone(),
-            units : uniforms.units.clone(),
+            data: uniforms.data.clone(),
+            render_texture: uniforms.render_texture.clone(),
+            units: uniforms.units.clone(),
         }
     }
 }

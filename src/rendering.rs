@@ -50,14 +50,11 @@ pub fn prepare_bind_group(
     let mut buffer = encase::StorageBuffer::new(&mut byte_buffer);
     buffer.write(&uniform_data).unwrap();
 
-    let uniform =
-        render_device.create_buffer_with_data(&BufferInitDescriptor {
-            label: None,
-            usage: BufferUsages::COPY_DST
-                | BufferUsages::UNIFORM
-                | BufferUsages::COPY_SRC,
-            contents: buffer.into_inner(),
-        });
+    let uniform = render_device.create_buffer_with_data(&BufferInitDescriptor {
+        label: None,
+        usage: BufferUsages::COPY_DST | BufferUsages::UNIFORM | BufferUsages::COPY_SRC,
+        contents: buffer.into_inner(),
+    });
 
     let bind_group = render_device.create_bind_group(
         None,
