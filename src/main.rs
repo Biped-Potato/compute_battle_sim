@@ -33,10 +33,14 @@ pub mod timestep;
 
 const DISPLAY_FACTOR: u32 = 1;
 const SIZE: (u32, u32) = (1920 / DISPLAY_FACTOR, 1088 / DISPLAY_FACTOR);
-const WORKGROUP_SIZE: u32 = 32;
+const WORKGROUP_SIZE: u32 = 256;
 const SIZE_X: u32 = 1000000;
 const SIZE_Y: u32 = 1;
 const COUNT: i32 = nearest_base(SIZE_X as i32 * SIZE_Y as i32, 2);
+const GRID_SIZE: i32 = 5;
+const WORLD_SIZE: (i32, i32) = (1920 * 2, 1080 * 2);
+const HASH_SIZE: (i32, i32) = (WORLD_SIZE.0 / GRID_SIZE, WORLD_SIZE.1 / GRID_SIZE);
+
 fn main() {
     App::new()
         .insert_resource(ClearColor(Color::BLACK))
@@ -70,7 +74,7 @@ fn main() {
 }
 const fn nearest_base(input: i32, base: i32) -> i32 {
     let num = 2_i32.pow(base as u32);
-    if input > num || num % (WORKGROUP_SIZE as i32) != 0 {
+    if input > num {
         return nearest_base(input, base + 1);
     }
     return num;
@@ -116,7 +120,6 @@ fn setup(mut commands: Commands, mut images: ResMut<Assets<Image>>) {
         );
         units.push(Unit {
             hash_id: -1,
-            position: position,
             previous_state : position,
             current_state : position,
             velocity: Vec2::new(rand.gen_range(-1.0..1.0), rand.gen_range(-1.0..1.0)).normalize(),
@@ -134,6 +137,7 @@ fn setup(mut commands: Commands, mut images: ResMut<Assets<Image>>) {
         grid_height: height,
         camera_zoom: 0.25,
         camera_position: Vec2::ZERO,
+        alpha : 0.0,
     };
 
     commands.insert_resource(SimulationUniforms {
@@ -161,10 +165,9 @@ pub struct UniformData {
     pub grid_height: i32,
     pub camera_zoom: f32,
     pub camera_position: Vec2,
+    pub alpha : f32,
 }
-const GRID_SIZE: i32 = 5;
-const WORLD_SIZE: (i32, i32) = (1920 * 2, 1080 * 2);
-const HASH_SIZE: (i32, i32) = (WORLD_SIZE.0 / GRID_SIZE, WORLD_SIZE.1 / GRID_SIZE);
+
 fn create_buffers(
     render_device: Res<RenderDevice>,
     simulation_uniforms: ResMut<SimulationUniforms>,

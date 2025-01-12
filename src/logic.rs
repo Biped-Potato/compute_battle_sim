@@ -52,10 +52,19 @@ pub fn prepare_bind_group(
         fixed.accumulater -= fixed.timestep;
     }
     let new_time = time.elapsed_secs();
-    let frame_time = new_time - fixed.current_time;
+    let mut frame_time = new_time - fixed.current_time;
+    if frame_time > 0.1 {
+        frame_time = 0.1;
+    }
+
     fixed.current_time = new_time;
     fixed.accumulater += frame_time;
-
+    let mut accumulator = fixed.accumulater;
+    while accumulator >= fixed.timestep {
+        accumulator -= fixed.timestep;
+    }
+    fixed.alpha = accumulator/fixed.timestep;
+    
     let bind_group = render_device.create_bind_group(
         None,
         &pipeline.texture_bind_group_layout,
@@ -209,11 +218,9 @@ impl render_graph::Node for LogicNode {
         let simulation_data = world.resource::<SimulationUniforms>();
         let fixed = world.resource::<FixedTimestep>();
         let mut accumulater = fixed.accumulater;
-        let mut f_time = fixed.time;
         while accumulater >= fixed.timestep {
             self.logic_update(render_context,bind_group,pipeline_cache,pipeline,unit_buffer,indices_buffer, render_device,simulation_data);
             accumulater -= fixed.timestep;
-            f_time += fixed.timestep;
         }
         
 

@@ -1,7 +1,6 @@
 struct Unit {
     previous_state : vec2<f32>,
     current_state : vec2<f32>,
-    position: vec2<f32>,
     velocity : vec2<f32>,
     hash_id : i32,
 }
@@ -17,6 +16,7 @@ struct UniformData{
     grid_height : i32,
     camera_zoom : f32,
     camera_position : vec2<f32>,
+    alpha : f32,
 }
 
 
@@ -37,7 +37,7 @@ const protected_range : f32 = 2.0;
 
 const max_speed = 0.2;
 
-const workgroup_s = 32;
+const workgroup_s = 256;
 
 
 const offsets = array(
@@ -58,7 +58,7 @@ fn compute_hash_id(position : vec2<f32>) -> i32{
 @compute @workgroup_size(workgroup_s, 1, 1)
 fn hash(@builtin(global_invocation_id) invocation_id: vec3<u32>){
     let index = i32(invocation_id.x); 
-    units[index].hash_id = compute_hash_id(units[index].position);
+    units[index].hash_id = compute_hash_id(units[index].current_state);
 }
 @compute @workgroup_size(workgroup_s, 1, 1)
 fn hash_indices(@builtin(global_invocation_id) invocation_id: vec3<u32>){
@@ -102,13 +102,13 @@ fn compare(a: u32, b: u32, direction: i32) {
 @compute @workgroup_size(workgroup_s, 1, 1)
 fn update(@builtin(global_invocation_id) invocation_id: vec3<u32>) {
     let index = i32(invocation_id.x); 
-    var position : vec2<f32> = units[index].position;
+    var current_state : vec2<f32> = units[index].current_state;
     var velocity : vec2<f32> = units[index].velocity;
     let hash_id = units[index].hash_id;
 
-    units[index].previous_state = position;
+    units[index].previous_state = current_state;
 
-    velocity += normalize(vec2<f32>(0.0,0.0)-position)*targeting_factor;
+    velocity += normalize(vec2<f32>(0.0,0.0)-current_state)*targeting_factor;
 
     for(var j = 0;j<9;j++){
         
@@ -121,8 +121,8 @@ fn update(@builtin(global_invocation_id) invocation_id: vec3<u32>) {
                 break;
             }
             if (i != index){
-                let o_position = units[i].position;
-                let offset = position - o_position;
+                let o_position = units[i].current_state;
+                let offset = current_state - o_position;
                 let dist = length(offset);
                 if (dist < protected_range){
                     let norm = normalize(offset);
@@ -135,10 +135,9 @@ fn update(@builtin(global_invocation_id) invocation_id: vec3<u32>) {
 
     velocity = normalize(velocity) * clamp(length(velocity),-max_speed,max_speed);
     
-    position += velocity;
+    current_state += velocity;
 
-    units[index].current_state = position;
-    units[index].position = position;
+    units[index].current_state = current_state;
     units[index].velocity = velocity;
     
 }

@@ -14,7 +14,7 @@ impl Default for FixedTimestep {
     fn default() -> Self {
         Self {
             accumulater : 0.0,
-            timestep : 1.0/12.0,
+            timestep : 1.0/8.0,
             current_time : 0.0,
             time : 0.0,
             alpha : 0.0,

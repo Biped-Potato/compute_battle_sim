@@ -10,6 +10,7 @@ use bevy::render::{
 };
 
 use crate::helpers::helpers::get_pipeline_states;
+use crate::timestep::fixed_time::FixedTimestep;
 use crate::{SimulationUniforms, UnitBuffer, COUNT, SIZE, WORKGROUP_SIZE};
 const SHADER_ASSET_PATH: &str = "shaders/rendering.wgsl";
 
@@ -40,12 +41,15 @@ pub fn prepare_bind_group(
     gpu_images: Res<RenderAssets<GpuImage>>,
     simulation_uniforms: Res<SimulationUniforms>,
     unit_buffer: Res<UnitBuffer>,
+    fixed : Res<FixedTimestep>,
     //uniform_buffer: Res<SimulationUniformBuffer>,
     render_device: Res<RenderDevice>,
 ) {
     let render_texture = gpu_images.get(&simulation_uniforms.render_texture).unwrap();
 
-    let uniform_data = simulation_uniforms.data.clone().unwrap();
+    let mut uniform_data = simulation_uniforms.data.clone().unwrap();
+
+    uniform_data.alpha = fixed.alpha;
     let mut byte_buffer = Vec::new();
     let mut buffer = encase::StorageBuffer::new(&mut byte_buffer);
     buffer.write(&uniform_data).unwrap();
@@ -193,7 +197,7 @@ impl render_graph::Node for RenderNode {
                 pass.set_bind_group(0, bind_group, &[]);
                 pass.set_pipeline(clear_pipeline);
 
-                pass.dispatch_workgroups(SIZE.0 / WORKGROUP_SIZE, SIZE.1 / WORKGROUP_SIZE, 1);
+                pass.dispatch_workgroups(SIZE.0 / 32, SIZE.1 / 32, 1);
 
                 let update_pipeline = pipeline_cache
                     .get_compute_pipeline(pipeline.update_pipeline)
