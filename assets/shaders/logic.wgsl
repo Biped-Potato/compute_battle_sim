@@ -1,4 +1,6 @@
 struct Unit {
+    previous_state : vec2<f32>,
+    current_state : vec2<f32>,
     position: vec2<f32>,
     velocity : vec2<f32>,
     hash_id : i32,
@@ -104,6 +106,8 @@ fn update(@builtin(global_invocation_id) invocation_id: vec3<u32>) {
     var velocity : vec2<f32> = units[index].velocity;
     let hash_id = units[index].hash_id;
 
+    units[index].previous_state = position;
+
     velocity += normalize(vec2<f32>(0.0,0.0)-position)*targeting_factor;
 
     for(var j = 0;j<9;j++){
@@ -117,7 +121,6 @@ fn update(@builtin(global_invocation_id) invocation_id: vec3<u32>) {
                 break;
             }
             if (i != index){
-                
                 let o_position = units[i].position;
                 let offset = position - o_position;
                 let dist = length(offset);
@@ -134,7 +137,7 @@ fn update(@builtin(global_invocation_id) invocation_id: vec3<u32>) {
     
     position += velocity;
 
-
+    units[index].current_state = position;
     units[index].position = position;
     units[index].velocity = velocity;
     

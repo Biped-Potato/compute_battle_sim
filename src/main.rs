@@ -110,13 +110,15 @@ fn setup(mut commands: Commands, mut images: ResMut<Assets<Image>>) {
     let mut rand = thread_rng();
     println!("{}", COUNT);
     for _i in 0..COUNT {
+        let position = Vec2::new(
+            rand.gen_range(-((WORLD_SIZE.0 / 2) as f32)..((WORLD_SIZE.0 / 2) as f32)),
+            rand.gen_range(-((WORLD_SIZE.1 / 2) as f32)..((WORLD_SIZE.1 / 2) as f32)),
+        );
         units.push(Unit {
             hash_id: -1,
-            start_index: -1,
-            position: Vec2::new(
-                rand.gen_range(-((WORLD_SIZE.0 / 2) as f32)..((WORLD_SIZE.0 / 2) as f32)),
-                rand.gen_range(-((WORLD_SIZE.1 / 2) as f32)..((WORLD_SIZE.1 / 2) as f32)),
-            ),
+            position: position,
+            previous_state : position,
+            current_state : position,
             velocity: Vec2::new(rand.gen_range(-1.0..1.0), rand.gen_range(-1.0..1.0)).normalize(),
         });
     }

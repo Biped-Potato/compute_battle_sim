@@ -1,8 +1,9 @@
 struct Unit {
+    previous_state : vec2<f32>,
+    current_state : vec2<f32>,
     position: vec2<f32>,
     velocity : vec2<f32>,
     hash_id : i32,
-    start_index : i32,
 }
 
 struct UniformData{

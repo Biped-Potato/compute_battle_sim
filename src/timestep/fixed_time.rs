@@ -6,6 +6,7 @@ pub struct FixedTimestep {
     pub accumulater : f32,
     pub timestep : f32,
     pub current_time : f32,
+    pub alpha : f32,
     pub time : f32,
 }
 
@@ -16,6 +17,7 @@ impl Default for FixedTimestep {
             timestep : 1.0/12.0,
             current_time : 0.0,
             time : 0.0,
+            alpha : 0.0,
         }
     }
 }
