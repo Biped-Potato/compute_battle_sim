@@ -53,6 +53,7 @@ fn render(@builtin(global_invocation_id) invocation_id: vec3<u32>) {
     if (units[index].id >= uniform_data.unit_count/2) {
         color = vec4f(0.0,0.0,1.0,1.0);
     }
+
     let screen_size = clamp(i32(1.0/uniform_data.camera_zoom),1,10);
 
     for (var x = 0;x<screen_size;x++) {

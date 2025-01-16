@@ -7,5 +7,5 @@ pub struct Unit {
     pub hash_id: i32,
     pub attack_id: i32,
     pub id: i32,
-    pub health : i32,
+    pub health: i32,
 }

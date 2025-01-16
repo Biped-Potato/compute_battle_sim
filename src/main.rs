@@ -120,7 +120,9 @@ fn setup(mut commands: Commands, mut images: ResMut<Assets<Image>>) {
         if i > COUNT / 2 {
             position = Vec2::new(
                 rand.gen_range((20.0)..(WORLD_SIZE.0 as f32 * 0.47)),
-                rand.gen_range(-((WORLD_SIZE.1 / 2) as f32)..((WORLD_SIZE.1 / 2) as f32)) * 0.47 * 2.0,
+                rand.gen_range(-((WORLD_SIZE.1 / 2) as f32)..((WORLD_SIZE.1 / 2) as f32))
+                    * 0.47
+                    * 2.0,
             );
         }
         units.push(Unit {
@@ -130,7 +132,7 @@ fn setup(mut commands: Commands, mut images: ResMut<Assets<Image>>) {
             current_state: position,
             velocity: Vec2::ZERO,
             id: i,
-            health : 4,
+            health: 4,
         });
     }
     let width = (WORLD_SIZE.0 as f32 / GRID_SIZE as f32) as i32;

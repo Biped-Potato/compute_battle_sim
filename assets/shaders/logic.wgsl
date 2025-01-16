@@ -8,7 +8,6 @@ struct Unit {
     health : i32,
 }
 
-
 struct UniformData{
     dimensions : vec2<f32>,
     unit_count : i32,
@@ -22,30 +21,20 @@ struct UniformData{
     alpha : f32,
 }
 
-
 @group(0) @binding(0)
 var<storage, read_write> units: array<Unit>;
-
 @group(0) @binding(1)
 var<storage, read_write> indices : array<i32>;
-
 @group(0) @binding(2)
 var<uniform> uniform_data : UniformData;
 
 const targeting_factor : f32 = 0.5;
-
 const avoid_factor : f32 = 2.0;
-
 const protected_range : f32 = 4.0;
-
 const max_speed = 0.5;
-
 const workgroup_s = 256;
-
 const war_zone : f32 = 5.0;
-
 const attack_range : f32 = 20.0;
-
 const kill_range : f32 = 4.0;
 
 const offsets = array(
