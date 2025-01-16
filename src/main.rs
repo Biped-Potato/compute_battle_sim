@@ -56,8 +56,6 @@ fn main() {
                         mode: bevy::window::WindowMode::BorderlessFullscreen(
                             MonitorSelection::Primary,
                         ),
-                        // uncomment for unthrottled FPS
-                        // present_mode: bevy::window::PresentMode::AutoNoVsync,
                         ..default()
                     }),
                     ..default()
