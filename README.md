@@ -9,7 +9,7 @@ A GPU accelerated battle simulator which heavily utilizes compute shaders to sim
 
 Disclaimers
 ===========
-This project is still very much a prototype. Most notably, the project sometimes struggles to run for extended periods of time with units that exceed the population size of 1 million.
+This project is still very much a prototype. Most notably, the project sometimes struggles to run for extended periods of time with units that exceed the population size of 1 million. Additionally, even though I've tried to add several failsafe checks within the shader code which should theoretically run at similar framerates throughout an entire timeframe, the project in its current form seems to regress in framerate the more it runs.
 
 Instructions
 ============
