@@ -7,6 +7,11 @@ Description
 ============
 A GPU accelerated battle simulator which heavily utilizes compute shaders to simulate upwards of 2 million units in realtime. The simulation is advanced enough for the units to actually kill each other and can be run at a stable 60 fps with 1 million units on my machine.
 
+Instructions
+============
+* **WASD** to move the camera around
+* **SCROLL** to zoom in and out
+
 Features/Optimizations
 =============
 * **Compute Shaders:** This simulation uses WebGPU Compute Shaders written in the WGSL Shader language to update the actual logic of the game resulting in the ability to handle millions of units stably and with minimal lag due to both the heavy performance gains of using a GPU as well as the inherent parallelism of Compute shader and hardware accelerated code.
