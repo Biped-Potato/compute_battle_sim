@@ -57,16 +57,15 @@ fn compute_hash_id(position : vec2<f32>) -> i32{
 @compute @workgroup_size(workgroup_s, 1, 1)
 fn hash(@builtin(global_invocation_id) invocation_id: vec3<u32>){
     let index = i32(invocation_id.x);
-    if(units[index].id == -1) {
-        units[index].hash_id = -999;
+    if(units[index].health <= 0) {
+        return;
     } 
-    else {
-        units[index].hash_id = compute_hash_id(units[index].current_state);
-    }
+    units[index].hash_id = compute_hash_id(units[index].current_state);
 }
 
 @compute @workgroup_size(workgroup_s, 1, 1)
 fn hash_indices(@builtin(global_invocation_id) invocation_id: vec3<u32>){
+    
     var prev_key : i32 = 0;
     let index = i32(invocation_id.x);
     let key = units[index].hash_id;
@@ -78,7 +77,7 @@ fn hash_indices(@builtin(global_invocation_id) invocation_id: vec3<u32>){
     }
     if (prev_key != key){
         indices[key] = index;
-    }
+    }  
 }
 
 @compute @workgroup_size(workgroup_s, 1, 1)
@@ -116,7 +115,9 @@ fn get_side(id : i32) -> i32{
 fn update(@builtin(global_invocation_id) invocation_id: vec3<u32>) {
     let index = i32(invocation_id.x); 
     if(units[index].health <= 0){
-        units[index].id = -1;
+        if (units[index].hash_id >= 0) {
+            units[index].hash_id = -999;
+        }
         return;
     }
     var current_state : vec2<f32> = units[index].current_state;

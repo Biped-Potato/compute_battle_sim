@@ -42,25 +42,28 @@ fn clear(@builtin(global_invocation_id) invocation_id: vec3<u32>,@builtin(num_wo
 @compute @workgroup_size(workgroup_s, 1, 1)
 fn render(@builtin(global_invocation_id) invocation_id: vec3<u32>) {
     let index = i32(invocation_id.x);
-    if (units[index].id == -1 ){
+    if (units[index].health <= 0){
         return;
     }
     let current_state = units[index].current_state;
+
     let previous_state = units[index].previous_state;
     let pos = current_state * uniform_data.alpha + previous_state * (1.0 - uniform_data.alpha);
     let screen_position = (pos+uniform_data.camera_position)/uniform_data.camera_zoom + uniform_data.dimensions/2.;
-    var color : vec4<f32> = vec4f(1.0,0.0,0.0,1.0);
-    if (units[index].id >= uniform_data.unit_count/2) {
-        color = vec4f(0.0,0.0,1.0,1.0);
-    }
 
-    let screen_size = clamp(i32(1.0/uniform_data.camera_zoom),1,10);
-
-    
-    for (var x = 0;x<screen_size;x++) {
-        for (var y = 0;y<screen_size;y++) {
-            textureStore(texture, vec2<i32>(i32(screen_position.x) - screen_size/2 + x,i32(screen_position.y) - screen_size/2 + y), color);
+    if (screen_position.x > 0.0 && screen_position.x < uniform_data.dimensions.x && screen_position.y > 0.0 && screen_position.y < uniform_data.dimensions.y) {
+            var color : vec4<f32> = vec4f(1.0,0.0,0.0,1.0);
+        if (units[index].id >= uniform_data.unit_count/2) {
+            color = vec4f(0.0,0.0,1.0,1.0);
         }
-    }
-    
+
+        let screen_size = clamp(i32(1.0/uniform_data.camera_zoom),1,10);
+
+        
+        for (var x = 0;x<screen_size;x++) {
+            for (var y = 0;y<screen_size;y++) {
+                textureStore(texture, vec2<i32>(i32(screen_position.x) - screen_size/2 + x,i32(screen_position.y) - screen_size/2 + y), color);
+            }
+        }
+    }   
 }
