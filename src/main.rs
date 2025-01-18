@@ -35,10 +35,10 @@ const DISPLAY_FACTOR: u32 = 1;
 const SIZE: (u32, u32) = (1920 / DISPLAY_FACTOR, 1088 / DISPLAY_FACTOR);
 const WORKGROUP_SIZE: u32 = 256;
 //this number will be rounded to the nearest base 2 number and be fed in as the total amount of units
-const COUNT_LOWER_BOUND: u32 = 1000000;
+const COUNT_LOWER_BOUND: u32 = 500000;
 const COUNT: i32 = nearest_base(COUNT_LOWER_BOUND as i32, 2);
 const GRID_SIZE: i32 = 5;
-const WORLD_SIZE: (i32, i32) = (1920 * 3, 1080 * 3);
+const WORLD_SIZE: (i32, i32) = (1920 * 2, 1080 * 2);
 const HASH_SIZE: (i32, i32) = (WORLD_SIZE.0 / GRID_SIZE, WORLD_SIZE.1 / GRID_SIZE);
 
 fn main() {
