@@ -47,8 +47,10 @@ fn dimensionalize(offset : vec2<i32>) -> i32{
     return offset.x - offset.y*uniform_data.grid_width;
 }
 fn compute_hash_id(position : vec2<f32>) -> i32{
-    let x = i32((position.x / f32(uniform_data.grid_size)) + (f32(uniform_data.grid_width)/2.0));
-    let y = i32((position.y / f32(uniform_data.grid_size)) + (f32(uniform_data.grid_height)/2.0));
+    let x = i32((position.x / f32(uniform_data.grid_size)) 
+        + (f32(uniform_data.grid_width)/2.0));
+    let y = i32((position.y / f32(uniform_data.grid_size)) 
+        + (f32(uniform_data.grid_height)/2.0));
     return x + (y*uniform_data.grid_width);
 }
 
@@ -62,6 +64,7 @@ fn hash(@builtin(global_invocation_id) invocation_id: vec3<u32>){
         units[index].hash_id = compute_hash_id(units[index].current_state);
     }
 }
+
 @compute @workgroup_size(workgroup_s, 1, 1)
 fn hash_indices(@builtin(global_invocation_id) invocation_id: vec3<u32>){
     var prev_key : i32 = 0;
