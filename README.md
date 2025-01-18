@@ -5,7 +5,11 @@
 
 Description
 ============
-A GPU accelerated battle simulator which heavily utilizes compute shaders to simulate upwards of 2 million units in realtime. The simulation is advanced enough for the units to actually kill each other and can be run at a stable 60 fps with 1 million units on my machine.
+A GPU accelerated battle simulator which heavily utilizes compute shaders to simulate upwards of 2 million units in realtime. The simulation is advanced enough for the units to actually kill each other and can at times be run at a stable 60 fps with 1 million units on my machine.
+
+Disclaimers
+===========
+This project is still very much a prototype. Most notably, the project sometimes struggles to run for extended periods of time with units that exceed the population size of 1 million.
 
 Instructions
 ============
