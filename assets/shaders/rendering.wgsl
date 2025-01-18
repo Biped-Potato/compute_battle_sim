@@ -56,6 +56,7 @@ fn render(@builtin(global_invocation_id) invocation_id: vec3<u32>) {
 
     let screen_size = clamp(i32(1.0/uniform_data.camera_zoom),1,10);
 
+    
     for (var x = 0;x<screen_size;x++) {
         for (var y = 0;y<screen_size;y++) {
             textureStore(texture, vec2<i32>(i32(screen_position.x) - screen_size/2 + x,i32(screen_position.y) - screen_size/2 + y), color);

@@ -58,7 +58,7 @@ fn compute_hash_id(position : vec2<f32>) -> i32{
 fn hash(@builtin(global_invocation_id) invocation_id: vec3<u32>){
     let index = i32(invocation_id.x);
     if(units[index].id == -1) {
-        units[index].hash_id = -100;
+        units[index].hash_id = -999;
     } 
     else {
         units[index].hash_id = compute_hash_id(units[index].current_state);

@@ -46,6 +46,7 @@ pub fn prepare_bind_group(
     time: Res<Time>,
     mut fixed: ResMut<FixedTimestep>,
 ) {
+    
     //timestep code
     while fixed.accumulater >= fixed.timestep {
         fixed.time += fixed.timestep;
